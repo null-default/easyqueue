@@ -5,12 +5,28 @@
  #define NULL ((void *)0)
 #endif /* NULL */
 
-typedef struct ezq_buffer ezq_buf;
+typedef struct ezq_buffer ezq_buf; /* shorthand name for convenience */
 
+/* Gets the next available index of the fixed size buffer. */
 #define EZQ_BUF_BACK(p_buf, bound) \
     ((((ezq_buf *)(p_buf))->front_index % (bound)) \
     + ((ezq_buf *)(p_buf))->count)
 
+/*!
+ * @brief Initializes an \c ezq_queue structure such that it contains no
+ * items.
+ *
+ * @param[in,out] p_queue Address of an \c ezq_queue to initialize.
+ * @param[in] capacity Maximum number of items that may be placed in the
+ * queue ( \c 0 for no limit).
+ * @param[in] alloc_fn Function used to allocate memory needed to store
+ * more items when the fixed size buffer is full.
+ * @param[in] free_fn Function used to release memory allocated for items
+ * when the fixed size buffer is full.
+ *
+ * @note This function performs no safety checks (e.g. checks for
+ * \c NULL ) on its passed arguments in release builds.
+ */
 static void EZQ_API
 ezq_init_unsafe(
     ezq_queue * const p_queue,
@@ -19,28 +35,95 @@ ezq_init_unsafe(
     void (*free_fn)(void * const ptr)
 );
 
+/*!
+ * @brief Gets the number of items currently in the queue.
+ *
+ * @param[in] p_queue Address of an \c ezq_queue to count the items in.
+ *
+ * @note This function performs no safety checks (e.g. checks for
+ * \c NULL ) on its passed arguments in release builds.
+ */
 static unsigned int EZQ_API
 ezq_count_unsafe(const ezq_queue * const p_queue);
 
+/*!
+ * @brief Places \c p_item into the next available location within the
+ * buffer pointed to by \c p_buf .
+ *
+ * @param[in,out] p_buf Address of an \c ezq_buffer to push \c p_item onto.
+ * @param[in] p_item Pointer to store in the buffer.
+ *
+ * @note This function performs no safety checks (e.g. checks for
+ * \c NULL ) on its passed arguments in release builds.
+ */
 static void EZQ_API
 ezq_buf_push(struct ezq_buffer * const p_buf, void * const p_item);
 
+/*!
+ * @brief Removes the front item from the buffer pointed to by \c p_buf
+ * and places the item in the location pointed to by \c pp_item .
+ *
+ * @param[in,out] p_buf Address of an \c ezq_buffer to pop an item from.
+ * @param[out] pp_item Address in which to store the popped item.
+ *
+ * @note This function performs no safety checks (e.g. checks for
+ * \c NULL ) on its passed arguments in release builds.
+ */
 static void EZQ_API
 ezq_buf_pop(struct ezq_buffer * const p_buf, void ** const pp_item);
 
+/*!
+ * @brief Dynamically allocates an \c ezq_linkedlist_node and ensures
+ * its fields are zero-initialized.
+ *
+ * @param[in] alloc_fn Function used to allocate memory for the new
+ * \c ezq_linkedlist_node .
+ * @param[in] p_item Pointer to store in the resulting
+ * \c ezq_linkedlist_node .
+ *
+ * @return The address of a dynamically allocated \c ezq_linkedlist_node
+ * if successful, otherwise \c NULL .
+ *
+ * @note This function performs no safety checks (e.g. checks for
+ * \c NULL ) on its passed arguments in release builds.
+ */
 static struct ezq_linkedlist_node * EZQ_API
 ezq_list_create_node(
-    struct ezq_linkedlist * const p_ll,
     void * (*alloc_fn)(const unsigned long size),
     void * const p_item
 );
 
+/*!
+ * @brief Appends the node pointed to by \c p_newnode to the end of the
+ * linked list pointed to by \c p_ll .
+ *
+ * @param[in,out] p_ll Address of an \c ezq_linkedlist to append to.
+ * @param[in] p_newnode Address of an \c ezq_linkedlist_node to append to
+ * the linked list.
+ *
+ * @note This function performs no safety checks (e.g. checks for
+ * \c NULL ) on its passed arguments in release builds.
+ */
 static void EZQ_API
 ezq_list_push(
     struct ezq_linkedlist * const p_ll,
     struct ezq_linkedlist_node * const p_newnode
 );
 
+/*!
+ * @brief Removes the front node of the linked list pointed to by \c p_ll
+ * and places the node's data into the location pointed to by \c pp_item .
+ *
+ * @param[in,out] p_ll Address of an \c ezq_linkedlist to retrieve the
+ * front node of.
+ * @param[in] free_fn Function used to release memory allocated for the
+ * node being removed.
+ * @param[out] pp_item Address in which to store the item that was in the
+ * retrieved node.
+ *
+ * @note This function performs no safety checks (e.g. checks for
+ * \c NULL ) on its passed arguments in release builds.
+ */
 static void EZQ_API
 ezq_list_pop(
     struct ezq_linkedlist * const p_ll,
@@ -48,6 +131,19 @@ ezq_list_pop(
     void ** const pp_item
 );
 
+/*!
+ * @brief Clears the queue, performing any necessary cleanup.
+ *
+ * @param[in,out] p_queue Address of an \c ezq_queue structure to destroy.
+ * @param[in] item_cleanup_fn Optional function that will be invoked each
+ * remaining item in the queue, in case those items require additional
+ * cleanup handling.
+ * @param[in] p_args Optional pointer to an arbitrary structure that may
+ * contain any additional resources necessary for cleanup of remaining items.
+ *
+ * @note This function performs no safety checks (e.g. checks for
+ * \c NULL ) on its passed arguments in release builds.
+ */
 static void EZQ_API
 ezq_destroy_unsafe(
     ezq_queue * const p_queue,
@@ -117,11 +213,7 @@ ezq_push(ezq_queue * const p_queue, void * const p_item)
     }
     else
     {
-        p_newnode = ezq_list_create_node(
-            &p_queue->dynamic,
-            p_queue->alloc_fn,
-            p_item
-        );
+        p_newnode = ezq_list_create_node(p_queue->alloc_fn, p_item);
         if (NULL == p_newnode)
         {
             estat = EZQ_STATUS_ALLOC_FAILURE;
@@ -287,14 +379,12 @@ ezq_buf_pop(struct ezq_buffer * const p_buf, void ** const pp_item)
 
 static struct ezq_linkedlist_node * EZQ_API
 ezq_list_create_node(
-    struct ezq_linkedlist * const p_ll,
     void * (*alloc_fn)(const unsigned long size),
     void * const p_item
 )
 {
     struct ezq_linkedlist_node * p_newnode = NULL;
 
-    assert(NULL != p_ll);
     assert(NULL != alloc_fn);
     assert(NULL != p_item);
 

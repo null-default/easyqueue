@@ -67,7 +67,8 @@ typedef enum ezq_status
 } ezq_status;
 
 /*!
- * @brief Initializes an \c ezq_queue structure such that it is empty.
+ * @brief Initializes an \c ezq_queue structure such that it contains no
+ * items.
  *
  * @param[in,out] p_queue Address of an \c ezq_queue to initialize.
  * @param[in] capacity Maximum number of items that may be placed in the
@@ -90,6 +91,21 @@ ezq_init(
 );
 
 /*!
+ * @brief Gets the number of items currently in the queue.
+ *
+ * @param[in] p_queue Address of an \c ezq_queue to count the items in.
+ * @param[out] p_status Optional address of an \c ezq_status in which to
+ * place the relevant status code after the operation.
+ *
+ * @return The number of items currently within the \c ezq_queue pointed
+ * to by \c p_queue . If \c p_status was not \c NULL , it will be updated
+ * with an \c ezq_status value indicating the success or failure of the
+ * underlying operations.
+ */
+unsigned int EZQ_API
+ezq_count(const ezq_queue * const p_queue, ezq_status * const p_status);
+
+/*!
  * @brief Places \c p_item at the tail end of a queue.
  *
  * @param[in,out] p_queue Address of an \c ezq_queue in which to place the
@@ -110,8 +126,8 @@ ezq_push(ezq_queue * const p_queue, void * const p_item);
  *
  * @param[in,out] p_queue Address of an \c ezq_queue to retrieve the front
  * item of.
- * @param[out] pp_item Address of the location to store the item retrieved
- * from the queue.
+ * @param[out] pp_item Address in which to store the item retrieved from
+ * the queue.
  *
  * @return \c EZQ_STATUS_SUCCESS if the front item of the \c ezq_queue pointed
  * to by \c p_queue is retrieved and placed in the location pointed to by
@@ -119,21 +135,6 @@ ezq_push(ezq_queue * const p_queue, void * const p_item);
  */
 ezq_status EZQ_API
 ezq_pop(ezq_queue * const p_queue, void ** const pp_item);
-
-/*!
- * @brief Gets the number of items currently in the queue.
- *
- * @param[in] p_queue Address of an \c ezq_queue to count the items in.
- * @param[out] p_status Optional address of an \c ezq_status in which to
- * place the relevant status code after the operation.
- *
- * @return The number of items currently within the \c ezq_queue pointed
- * to by \c p_queue . If \c p_status was not \c NULL , it will be updated
- * with an \c ezq_status value indicating the success or failure of the
- * underlying operations.
- */
-unsigned int EZQ_API
-ezq_count(const ezq_queue * const p_queue, ezq_status * const p_status);
 
 /*!
  * @brief Clears the queue, performing any necessary cleanup.
