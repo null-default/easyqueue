@@ -17,16 +17,31 @@
 
 struct ezq_buffer
 {
-    void *items[EZQ_FIXED_BUFFER_CAPACITY]; /* array of items */
+    void *p_items[EZQ_FIXED_BUFFER_CAPACITY]; /* array of items */
     unsigned int front_index; /* index of the front item of the buffer */
     unsigned int count; /* number of items currently in the buffer */
+};
+
+struct ezq_linkedlist_node
+{
+    void * p_item; /* data in the list */
+    struct ezq_linkedlist_node * p_next; /* next node in the list */
+    struct ezq_linkedlist_node * p_prev; /* previous node in the list */
+};
+
+struct ezq_linkedlist
+{
+    struct ezq_linkedlist_node * p_head; /* front node of the list */
+    struct ezq_linkedlist_node * p_tail; /* rear node of the list */
+    unsigned int count; /* number of nodes in the list */
 };
 
 typedef struct ezq_queue
 {
     struct ezq_buffer fixed;
-    unsigned long capacity;
-    void *(*realloc_fn)(void * ptr, unsigned long size);
+    struct ezq_linkedlist dynamic;
+    unsigned int capacity;
+    void *(*alloc_fn)(const unsigned long size);
     void (*free_fn)(void * const ptr);
 } ezq_queue;
 
@@ -55,8 +70,12 @@ typedef enum ezq_status
  * @brief Initializes an \c ezq_queue structure such that it is empty.
  *
  * @param[in,out] p_queue Address of an \c ezq_queue to initialize.
- * @param[in] realloc_fn UNUSED
- * @param[in] free_fn UNUSED
+ * @param[in] capacity Maximum number of items that may be placed in the
+ * queue ( \c 0 for no limit).
+ * @param[in] alloc_fn Function used to allocate memory needed to store
+ * more items when the fixed size buffer is full.
+ * @param[in] free_fn Function used to release memory allocated for items
+ * when the fixed size buffer is full.
  *
  * @return \c EZQ_STATUS_SUCCESS if the \c ezq_queue pointed to by \c p_queue
  * is successfully initialized, otherwise an error-specific \c ezq_status
@@ -65,7 +84,8 @@ typedef enum ezq_status
 ezq_status EZQ_API
 ezq_init(
     ezq_queue * const p_queue,
-    void *(*realloc_fn)(void * ptr, unsigned long size),
+    const unsigned int capacity,
+    void *(*alloc_fn)(const unsigned long size),
     void (*free_fn)(void * const ptr)
 );
 
@@ -131,8 +151,8 @@ ezq_count(const ezq_queue * const p_queue, ezq_status * const p_status);
 ezq_status EZQ_API
 ezq_destroy(
     ezq_queue * const p_queue,
-    void (*item_cleanup_fn)(void *p_item, void *p_args),
-    void *p_args
+    void (*item_cleanup_fn)(void * const p_item, void * const p_args),
+    void * const p_args
 );
 
 #endif /* EASYQUEUE_H */
