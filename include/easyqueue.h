@@ -15,6 +15,14 @@
  #error "Value of EZQ_FIXED_BUFFER_CAPACITY must be a positive integer"
 #endif /* EZQ_FIXED_BUFFER_CAPACITY < 1 */
 
+/*!
+ * @struct ezq_buffer
+ * @brief Structure encapsulating a simple rotating buffer.
+ *
+ * @note This structure is exposed in the header to avoid necessitating that
+ * instances of it be dynamically allocated, but this structure is not
+ * intended to be interacted with directly.
+ */
 struct ezq_buffer
 {
     void *p_items[EZQ_FIXED_BUFFER_CAPACITY]; /* array of items */
@@ -22,6 +30,15 @@ struct ezq_buffer
     unsigned int count; /* number of items currently in the buffer */
 };
 
+/*!
+ * @struct ezq_linkedlist
+ * @brief Structure encapsulating a node for use with \c ezq_linkedlist
+ * instances.
+ *
+ * @note This structure is exposed in the header to avoid necessitating that
+ * instances of it be dynamically allocated, but this structure is not
+ * intended to be interacted with directly.
+ */
 struct ezq_linkedlist_node
 {
     void * p_item; /* data in the list */
@@ -29,6 +46,14 @@ struct ezq_linkedlist_node
     struct ezq_linkedlist_node * p_prev; /* previous node in the list */
 };
 
+/*!
+ * @struct ezq_linkedlist
+ * @brief Structure encapsulating a simple linked list implementation.
+ *
+ * @note This structure is exposed in the header to avoid necessitating that
+ * instances of it be dynamically allocated, but this structure is not
+ * intended to be interacted with directly.
+ */
 struct ezq_linkedlist
 {
     struct ezq_linkedlist_node * p_head; /* front node of the list */
@@ -36,12 +61,25 @@ struct ezq_linkedlist
     unsigned int count; /* number of nodes in the list */
 };
 
+/*!
+ * @struct ezq_queue
+ * @brief Structure representing a queue with a fixed-size buffer that also
+ * makes use of a linked list to support queueing further items.
+ *
+ * @note This structure is exposed in the header to avoid necessitating that
+ * users dynamically allocate instances of it, but instances of this structure
+ * are intended to be accessed via the API functions rather than directly.
+ */
 typedef struct ezq_queue
 {
-    struct ezq_buffer fixed;
-    struct ezq_linkedlist dynamic;
-    unsigned int capacity;
+    struct ezq_buffer fixed; /* fixed-size buffer */
+    struct ezq_linkedlist dynamic; /* linked list for further items */
+    unsigned int capacity; /* optional max number of items; 0 means no limit */
+
+    /* function for dynamically allocating nodes in the linked list */
     void *(*alloc_fn)(const unsigned long size);
+
+    /* function to release dynamically allocated nodes */
     void (*free_fn)(void * const ptr);
 } ezq_queue;
 
