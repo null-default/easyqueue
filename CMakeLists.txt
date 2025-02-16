@@ -32,3 +32,8 @@ add_library(${PROJECT_NAME} STATIC)
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 
 add_subdirectory(src)
+
+if(EASYQUEUE_BUILD_EXAMPLES)
+    message("Hello world")
+    add_subdirectory(examples)
+endif()
