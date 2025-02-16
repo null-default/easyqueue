@@ -18,9 +18,6 @@ set(EASYQUEUE_AGE_VERSION 0)       # only increment if ABI changes are backwards
 math(EXPR EASYQUEUE_SOVERSION "${EASYQUEUE_CURRENT_VERSION} - ${EASYQUEUE_AGE_VERSION}")
 set(EASYQUEUE_VERSION ${EASYQUEUE_SOVERSION}.${EASYQUEUE_AGE_VERSION}.${EASYQUEUE_REVISION_VERSION})
 
-# Use an old standard to try and maximize portability.
-set(CMAKE_C_STANDARD 90)
-
 # Set the generator used for this build.
 if(EASYQUEUE_USE_GENERATOR_MAKE)
     set(CMAKE_GENERATOR "Unix Makefiles")
@@ -28,12 +25,13 @@ else()
     set(CMAKE_GENERATOR "Ninja")
 endif()
 
+# Build the library.
 add_library(${PROJECT_NAME} STATIC)
 target_include_directories(${PROJECT_NAME} PUBLIC include)
-
 add_subdirectory(src)
 
+# Example executables that demonstrate usage of the library can be compiled if
+# EASYQUEUE_BUILD_EXAMPLES is provided as a CMake variable.
 if(EASYQUEUE_BUILD_EXAMPLES)
-    message("Hello world")
     add_subdirectory(examples)
 endif()
