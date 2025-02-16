@@ -5,25 +5,40 @@
  #define NULL ((void *)0)
 #endif /* NULL */
 
+typedef struct ezq_buffer ezq_buf;
+
+#define EZQ_BUF_BACK(p_buf, bound) \
+    ((((ezq_buf *)(p_buf))->front_index % (bound)) \
+    + ((ezq_buf *)(p_buf))->count)
+
 static void EZQ_API
 ezq_init_nochecks(
     ezq_queue * const p_queue,
     const unsigned long capacity,
-    void * (*alloc_fn)(const unsigned long),
+    void *(*realloc_fn)(void * ptr, unsigned long size),
     void (*free_fn)(void * const ptr)
 );
 
-static void EZQ_API
-ezq_push_fixed_nochecks(ezq_queue * const p_queue, void * const p_item);
+static unsigned int EZQ_API
+ezq_count_nochecks(const ezq_queue * const p_queue);
 
-static ezq_status EZQ_API
-ezq_push_linked_nochecks(ezq_queue * const p_queue, void * const p_item);
+static void EZQ_API
+ezq_push_nochecks(ezq_queue * const p_queue, void * const p_item);
+
+static void EZQ_API
+ezq_pop_nochecks(ezq_queue * const p_queue, void ** const pp_item);
+
+static void EZQ_API
+ezq_destroy_nochecks(
+    ezq_queue * const p_queue,
+    void (*item_cleanup_fn)(void * const p_item, void * const p_args),
+    void * const p_args
+);
 
 ezq_status EZQ_API
 ezq_init(
     ezq_queue * const p_queue,
-    const unsigned long capacity,
-    void * (*alloc_fn)(const unsigned long size),
+    void *(*realloc_fn)(void * ptr, unsigned long size),
     void (*free_fn)(void * const ptr)
 )
 {
@@ -35,7 +50,7 @@ ezq_init(
         goto done;
     }
 
-    ezq_init_nochecks(p_queue, capacity, alloc_fn, free_fn);
+    ezq_init_nochecks(p_queue, EZQ_FIXED_BUFFER_CAPACITY, realloc_fn, free_fn);
     estat = EZQ_STATUS_SUCCESS;
 
 done:
@@ -46,106 +61,186 @@ ezq_status EZQ_API
 ezq_push(ezq_queue * const p_queue, void * const p_item)
 {
     ezq_status estat = EZQ_STATUS_UNKNOWN;
+
     if (NULL == p_queue)
     {
         estat = EZQ_STATUS_NULL_QUEUE;
         goto done;
     }
-    if (p_queue->capacity == 0 && p_queue->size >= p_queue->capacity)
+    if (NULL == p_item)
+    {
+        estat = EZQ_STATUS_NULL_ITEM;
+        goto done;
+    }
+    if (p_queue->capacity > 0 && p_queue->fixed.count >= p_queue->capacity)
     {
         estat = EZQ_STATUS_FULL;
         goto done;
     }
 
-    if (p_queue->size < EZQ_FIXED_BUFFER_CAPACITY)
-    {
-        ezq_push_fixed_nochecks(p_queue, p_item);
-        estat = EZQ_STATUS_SUCCESS;
-    }
-    else
-    {
-        estat = ezq_push_linked_nochecks(p_queue, p_item);
-    }
+    ezq_push_nochecks(p_queue, p_item);
+
+    estat = EZQ_STATUS_SUCCESS;
 
 done:
     return estat;
 } /* ezq_push */
 
+ezq_status EZQ_API
+ezq_pop(ezq_queue * const p_queue, void ** const pp_item)
+{
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+
+    if (NULL == p_queue)
+    {
+        estat = EZQ_STATUS_NULL_QUEUE;
+        goto done;
+    }
+    if (NULL == pp_item)
+    {
+        estat = EZQ_STATUS_NULL_OUT;
+        goto done;
+    }
+    if (ezq_count_nochecks(p_queue) < 1)
+    {
+        estat = EZQ_STATUS_EMPTY;
+        goto done;
+    }
+
+    ezq_pop_nochecks(p_queue, pp_item);
+
+    estat = EZQ_STATUS_SUCCESS;
+
+done:
+    return estat;
+} /* ezq_pop */
+
+unsigned int EZQ_API
+ezq_count(const ezq_queue * const p_queue, ezq_status * const p_status)
+{
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    unsigned int count = 0;
+
+    if (NULL == p_queue)
+    {
+        estat = EZQ_STATUS_NULL_QUEUE;
+        goto done;
+    }
+
+    count = ezq_count_nochecks(p_queue);
+    estat = EZQ_STATUS_SUCCESS;
+
+done:
+    if (NULL != p_status)
+    {
+        *p_status = estat;
+    }
+    return count;
+} /* ezq_count */
+
+ezq_status EZQ_API
+ezq_destroy(
+    ezq_queue * const p_queue,
+    void (*item_cleanup_fn)(void * const p_item, void * const p_args),
+    void * const p_args
+)
+{
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+
+    if (NULL == p_queue)
+    {
+        estat = EZQ_STATUS_NULL_QUEUE;
+        goto done;
+    }
+
+    ezq_destroy_nochecks(p_queue, item_cleanup_fn, p_args);
+
+    estat = EZQ_STATUS_SUCCESS;
+
+done:
+    return estat;
+} /* ezq_destroy */
+
 static void EZQ_API
 ezq_init_nochecks(
     ezq_queue * const p_queue,
     const unsigned long capacity,
-    void * (*alloc_fn)(const unsigned long),
+    void *(*realloc_fn)(void * ptr, unsigned long size),
     void (*free_fn)(void * const ptr)
 )
 {
+    unsigned int i = 0;
     assert(NULL != p_queue);
 
-    p_queue->p_tail = NULL;
-    p_queue->size = 0;
+    for (i = 0; i < EZQ_FIXED_BUFFER_CAPACITY; ++i)
+    {
+        p_queue->fixed.items[i] = NULL;
+    }
+    p_queue->fixed.front_index = 0;
+    p_queue->fixed.count = 0;
+
     p_queue->capacity = capacity;
-    p_queue->alloc_fn = alloc_fn;
+    p_queue->realloc_fn = realloc_fn;
     p_queue->free_fn = free_fn;
 } /* ezq_init_nochecks */
 
+static unsigned int EZQ_API
+ezq_count_nochecks(const ezq_queue * const p_queue)
+{
+    unsigned int count = 0;
+    assert(NULL != p_queue);
+
+    count = p_queue->fixed.count;
+
+    return count;
+} /* ezq_count_nochecks */
+
 static void EZQ_API
-ezq_push_fixed_nochecks(ezq_queue * const p_queue, void * const p_item)
+ezq_push_nochecks(ezq_queue * const p_queue, void * const p_item)
 {
     assert(NULL != p_queue);
-    assert(p_queue->size < EZQ_FIXED_BUFFER_CAPACITY);
-    assert(p_queue->capacity > 0 ? (p_queue->size < p_queue->capacity) : 1);
     assert(NULL != p_item);
 
-    p_queue->fixed_buffer[p_queue->size] = p_item;
-    ++p_queue->size;
-} /* ezq_push_fixed_nochecks */
+    if (p_queue->fixed.count < EZQ_FIXED_BUFFER_CAPACITY)
+    {
+        p_queue->fixed.items[
+            EZQ_BUF_BACK(&p_queue->fixed, EZQ_FIXED_BUFFER_CAPACITY)
+        ] = p_item;
+        ++p_queue->fixed.count;
+    }
+} /* ezq_push_nochecks */
 
-static ezq_status EZQ_API
-ezq_push_linked_nochecks(ezq_queue * const p_queue, void * const p_item)
+static void EZQ_API
+ezq_pop_nochecks(ezq_queue * const p_queue, void ** const pp_item)
 {
-    ezq_status estat = EZQ_STATUS_UNKNOWN;
-    struct ezq_queue_node * p_newnode = NULL;
+    assert(NULL != p_queue);
+    assert(NULL != pp_item);
+
+    *pp_item = p_queue->fixed.items[p_queue->fixed.front_index];
+    p_queue->fixed.items[p_queue->fixed.front_index] = NULL;
+    p_queue->fixed.front_index = (p_queue->fixed.front_index + 1)
+                                 % EZQ_FIXED_BUFFER_CAPACITY;
+    --p_queue->fixed.count;
+} /* ezq_pop_nochecks */
+
+static void EZQ_API
+ezq_destroy_nochecks(
+    ezq_queue * const p_queue,
+    void (*item_cleanup_fn)(void * const p_item, void * const p_args),
+    void * const p_args
+)
+{
+    void *p_item = NULL;
 
     assert(NULL != p_queue);
-    assert(NULL != p_queue->alloc_fn);
-    assert(p_queue->size >= EZQ_FIXED_BUFFER_CAPACITY);
-    assert(p_queue->capacity > 0 ? (p_queue->size < p_queue->capacity) : 1);
-    assert(NULL != p_item);
 
-    /* Allocate a new node */
-    p_newnode = p_queue->alloc_fn(sizeof(*p_queue->p_tail));
-    if (NULL == p_newnode)
+    while (ezq_count_nochecks(p_queue) > 0)
     {
-        estat = EZQ_STATUS_ALLOC_FAILURE;
-        goto done;
-    }
-    p_newnode->p_data = p_item;
-
-    /* The new node is now the tail end of the linked list portion */
-    if (NULL == p_queue->p_tail)
-    {
-        p_newnode->p_prev = NULL;
-        p_queue->p_tail = p_newnode;
-        p_queue->p_head = p_newnode; /* New node is also head of the list */
-    }
-    else
-    {
-        p_newnode->p_prev = p_queue->p_tail;
-        p_queue->p_tail = p_newnode;
-    }
-
-    p_newnode = NULL;
-    ++p_queue->size;
-
-done:
-    /* Shouldn't be possible, but kept here as future-proofing safety measure */
-    if (NULL != p_newnode)
-    {
-        if (NULL != p_queue->free_fn)
+        ezq_pop_nochecks(p_queue, &p_item);
+        if (NULL != item_cleanup_fn)
         {
-            p_queue->free_fn(p_newnode);
-            p_newnode = NULL;
+            item_cleanup_fn(p_item, p_args);
         }
     }
-    return estat;
-} /* ezq_push_linked_nochecks */
+} /* ezq_destroy_nochecks */
+
