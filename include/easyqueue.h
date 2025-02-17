@@ -9,7 +9,7 @@
   * The maximum number of items the queue may hold before resorting to
   * dynamic allocation of further items.
   */
- #define EZQ_FIXED_BUFFER_CAPACITY (16)
+ #define EZQ_FIXED_BUFFER_CAPACITY (32)
 #endif /* EZQ_FIXED_BUFFER_CAPACITY */
 #if EZQ_FIXED_BUFFER_CAPACITY < 1
  #error "Value of EZQ_FIXED_BUFFER_CAPACITY must be a positive integer"
@@ -99,6 +99,7 @@ typedef enum ezq_status
     EZQ_STATUS_EMPTY, /* Queue was empty */
 
     EZQ_STATUS_NO_ALLOC_FN, /* Dynamic allocation is needed but no func given */
+    EZQ_STATUS_NO_FREE_FN, /* No func to free dynamically allocated resource */
     EZQ_STATUS_ALLOC_FAILURE, /* Dynamic allocation attempt failed */
 
     EZQ_STATUS_UNKNOWN = 0xFF /* Unknown error occurred */
@@ -190,7 +191,7 @@ ezq_pop(ezq_queue * const p_queue, void ** const pp_item);
 ezq_status EZQ_API
 ezq_destroy(
     ezq_queue * const p_queue,
-    void (*item_cleanup_fn)(void * const p_item, void * const p_args),
+    void (*item_cleanup_fn)(void *p_item, void *p_args),
     void * const p_args
 );
 

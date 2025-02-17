@@ -98,7 +98,7 @@ ezq_list_create_node(
  * linked list pointed to by \c p_ll .
  *
  * @param[in,out] p_ll Address of an \c ezq_linkedlist to append to.
- * @param[in] p_newnode Address of an \c ezq_linkedlist_node to append to
+ * @param[in] p_node Address of an \c ezq_linkedlist_node to append to
  * the linked list.
  *
  * @note This function performs no safety checks (e.g. checks for
@@ -107,7 +107,7 @@ ezq_list_create_node(
 static void EZQ_API
 ezq_list_push(
     struct ezq_linkedlist * const p_ll,
-    struct ezq_linkedlist_node * const p_newnode
+    struct ezq_linkedlist_node * const p_node
 );
 
 /*!
@@ -147,7 +147,7 @@ ezq_list_pop(
 static void EZQ_API
 ezq_destroy_unsafe(
     ezq_queue * const p_queue,
-    void (*item_cleanup_fn)(void * const p_item, void * const p_args),
+    void (*item_cleanup_fn)(void *p_item, void *p_args),
     void * const p_args
 );
 
@@ -164,6 +164,16 @@ ezq_init(
     if (NULL == p_queue)
     {
         estat = EZQ_STATUS_NULL_QUEUE;
+        goto done;
+    }
+    if (NULL == alloc_fn)
+    {
+        estat = EZQ_STATUS_NO_ALLOC_FN;
+        goto done;
+    }
+    if (NULL == free_fn)
+    {
+        estat = EZQ_STATUS_NO_FREE_FN;
         goto done;
     }
 
@@ -246,15 +256,20 @@ ezq_pop(ezq_queue * const p_queue, void ** const pp_item)
         estat = EZQ_STATUS_NULL_OUT;
         goto done;
     }
-    if (ezq_count_unsafe(p_queue) < 1)
+    if (p_queue->fixed.count < 1)
     {
         estat = EZQ_STATUS_EMPTY;
+        goto done;
+    }
+    if (p_queue->dynamic.count > 0 && NULL == p_queue->free_fn)
+    {
+        estat = EZQ_STATUS_NO_FREE_FN;
         goto done;
     }
 
     ezq_buf_pop(&p_queue->fixed, pp_item);
 
-    /* Move the front item of the linked list into the fixed buffer. */
+    /* Move front item of the linked list to the back of the fixed buffer. */
     if (p_queue->dynamic.count > 0)
     {
         ezq_list_pop(&p_queue->dynamic, p_queue->free_fn, &p_item);
@@ -297,7 +312,7 @@ done:
 ezq_status EZQ_API
 ezq_destroy(
     ezq_queue * const p_queue,
-    void (*item_cleanup_fn)(void * const p_item, void * const p_args),
+    void (*item_cleanup_fn)(void *p_item, void *p_args),
     void * const p_args
 )
 {
@@ -404,22 +419,22 @@ ezq_list_create_node(
 static void EZQ_API
 ezq_list_push(
     struct ezq_linkedlist * const p_ll,
-    struct ezq_linkedlist_node * const p_newnode
+    struct ezq_linkedlist_node * const p_node
 )
 {
     assert(NULL != p_ll);
-    assert(NULL != p_newnode);
+    assert(NULL != p_node);
 
     if (NULL == p_ll->p_tail)
     {
-        p_ll->p_head = p_newnode;
+        p_ll->p_head = p_node;
     }
     else
     {
-        p_newnode->p_prev = p_ll->p_tail;
-        p_ll->p_tail->p_next = p_newnode;
+        p_node->p_prev = p_ll->p_tail;
+        p_ll->p_tail->p_next = p_node;
     }
-    p_ll->p_tail = p_newnode;
+    p_ll->p_tail = p_node;
     ++p_ll->count;
 } /* ezq_list_push */
 
@@ -453,7 +468,7 @@ ezq_list_pop(
 static void EZQ_API
 ezq_destroy_unsafe(
     ezq_queue * const p_queue,
-    void (*item_cleanup_fn)(void * const p_item, void * const p_args),
+    void (*item_cleanup_fn)(void * p_item, void *p_args),
     void * const p_args
 )
 {
