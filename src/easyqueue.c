@@ -166,16 +166,6 @@ ezq_init(
         estat = EZQ_STATUS_NULL_QUEUE;
         goto done;
     }
-    if (NULL == alloc_fn)
-    {
-        estat = EZQ_STATUS_NO_ALLOC_FN;
-        goto done;
-    }
-    if (NULL == free_fn)
-    {
-        estat = EZQ_STATUS_NO_FREE_FN;
-        goto done;
-    }
 
     ezq_init_unsafe(p_queue, capacity, alloc_fn, free_fn);
     estat = EZQ_STATUS_SUCCESS;
