@@ -3,25 +3,29 @@ Easyqueue is simple queue implementation in C intended to support flexible appli
 
 Other features include:
 
-- Compile-time configurable fixed-size buffer length
-- Optional maximum capacity, configurable per-queue
-- Supports custom memory allocators
-- No external dependencies
+- Configurability
+  - Compile-time configurable fixed-size buffer length
+  - Optional maximum capacity, configurable per-queue
+- Portability
+  - Supports custom memory allocators
+  - No external dependencies
+  - Written using C89-conformant syntax to maximize portability
 
 ## Usage
 
-After installation, simply include the `easyqueue.h` header file in your project to use the definitions. The Easyqueue API is straightforward and only consists of a few symbols:
+After installation, simply include the [`easyqueue.h`](include/easyqueue.h) header file in your project to use the definitions. The Easyqueue API is straightforward and only consists of a few symbols:
 
-|         **Symbol**          |        **Symbol Type**        | **Description**                                                                                                                                                      |
-|:---------------------------:|:-------------------------:|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `EZQ_FIXED_BUFFER_CAPACITY` |  Preprocessor definition  | The number of items an `ezq_queue` will be able to store without necessitating dynamic allocation. See the [Configuration](#configuration) section for more details. |
-|         `ezq_init`          |         Function          | Initializes an `ezq_queue` structure ("the queue").                                                                                                                  |
-|         `ezq_push`          |         Function          | Returns the number of items in the queue.                                                                                                                            |
-|          `ezq_pop`          |         Function          | Places a new item at the tail end of the queue.                                                                                                                      |
-|         `ezq_count`         |         Function          | Retrieves an item from the front of the queue.                                                                                                                       |
-|        `ezq_destroy`        |         Function          | Clears the queue and performs any necessary teardown.                                                                                                                |
-
-Each of the API functions (except `ezq_count()`) returns an integer-based `ezq_status` value. `ezq_count()` instead returns the number of items in the queue and may optionally be passed an `ezq_status *` in which the resulting `ezq_status` value will be stored. If the return value of one of these functions is not `EZQ_STATUS_SUCCESS`, which indicates that the call was entirely successful, an error-specific code will be returned instead.
+|         **Symbol**          |     **Symbol Type**     | **Description**                                                                                                                                                                                                                                                                              |
+|:---------------------------:|:-----------------------:|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|         `ezq_queue`         |        `struct`         | The primary structure encapsulating the Easyqueue queue implementation. This structure name has been `typedef`'d for more convenient usage.                                                                                                                                                  |
+|        `ezq_status`         |         `enum`          | An integer-based status code that indicates the success or failure of an Easyqueue API function. All Easyqueue API functions (except `ezq_count`) return one of these values, with successful calls returning `EZQ_STATUS_SUCCESS` and unsuccessful calls returning an error-specific value. |
+| `EZQ_FIXED_BUFFER_CAPACITY` | Preprocessor definition | The number of items an `ezq_queue` will be able to store without necessitating dynamic allocation. See the [Configuration](#configuration) section for more details.                                                                                                                         |
+|         `ezq_init`          |        Function         | Initializes an `ezq_queue` structure, setting its fields to their respective "empty" values.                                                                                                                                                                                                 |
+|         `ezq_push`          |        Function         | Places a new item at the tail end of a passed `ezq_queue`.                                                                                                                                                                                                                                   |
+|          `ezq_pop`          |        Function         | Retrieves an item from the front end of a passed `ezq_queue`.                                                                                                                                                                                                                                |
+|         `ezq_count`         |        Function         | Returns the number of items in a passed `ezq_queue`. An optional `ezq_status` pointer may be passed to capture the success or failure of the operation.                                                                                                                                      |
+|        `ezq_destroy`        |        Function         | Clears a passed `ezq_queue` and performs any necessary teardown.                                                                                                                                                                                                                             |
+_NOTE: The `ezq_queue` structure definition (and those of its supporting structures) are exposed to avoid users having to dynamically allocate instances of it. This structure is not intended to be accessed directly, but rather through the Easyqueue API functions._
 
 ## Building
 
@@ -32,13 +36,13 @@ Easyqueue currently supports the following build systems, whose relevant files a
 
 ### Configuration
 
-Easyqueue supports some configuration options (beyond what your build system may include by default), depending on your build system.
+Easyqueue supports some configuration options, depending on your build system.
 
-|    Option Type     |            Option/Flag            | Description                                                                                   | Default Value |
-|:------------------:|:---------------------------------:|-----------------------------------------------------------------------------------------------|:-------------:|
-|  Compilation Flag  |    `EZQ_FIXED_BUFFER_CAPACITY`    | Sets the number of items an `ezq_queue` will support before dynamically allocating new nodes. |     `32`      |
-|   CMake Variable   | `EASYQUEUE_FIXED_BUFFER_CAPACITY` | CMake variable equivalent to the `EZQ_FIXED_BUFFER_CAPACITY` compilation flag.                |     `32`      |
-|   CMake Variable   | `EASYQUEUE_BUILD_EXAMPLES`   | If set/defined, any example programs in the `examples/` directory will be built. |    _unset_    |
+|   Option Type    |            Option/Flag            | Description                                                                                   | Default Value |
+|:----------------:|:---------------------------------:|-----------------------------------------------------------------------------------------------|:-------------:|
+| Compilation Flag |    `EZQ_FIXED_BUFFER_CAPACITY`    | Sets the number of items an `ezq_queue` will support before dynamically allocating new nodes. |     `32`      |
+|  CMake Variable  | `EASYQUEUE_FIXED_BUFFER_CAPACITY` | CMake variable equivalent to the `EZQ_FIXED_BUFFER_CAPACITY` compilation flag.                |     `32`      |
+|  CMake Variable  |    `EASYQUEUE_BUILD_EXAMPLES`     | If set/defined, any example programs in the `examples/` directory will be built.              |    _unset_    |
 
 ## Example
 
