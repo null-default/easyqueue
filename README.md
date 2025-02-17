@@ -25,6 +25,7 @@ After installation, simply include the [`easyqueue.h`](include/easyqueue.h) head
 |          `ezq_pop`          |        Function         | Retrieves an item from the front end of a passed `ezq_queue`.                                                                                                                                                                                                                                |
 |         `ezq_count`         |        Function         | Returns the number of items in a passed `ezq_queue`. An optional `ezq_status` pointer may be passed to capture the success or failure of the operation.                                                                                                                                      |
 |        `ezq_destroy`        |        Function         | Clears a passed `ezq_queue` and performs any necessary teardown.                                                                                                                                                                                                                             |
+
 _NOTE: The `ezq_queue` structure definition (and those of its supporting structures) are exposed to avoid users having to dynamically allocate instances of it. This structure is not intended to be accessed directly, but rather through the Easyqueue API functions._
 
 ## Building
