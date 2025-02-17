@@ -409,7 +409,6 @@ ezq_list_create_node(
         goto done;
     }
     p_newnode->p_next = NULL;
-    p_newnode->p_prev = NULL;
     p_newnode->p_item = p_item;
 
     done:
@@ -431,7 +430,6 @@ ezq_list_push(
     }
     else
     {
-        p_node->p_prev = p_ll->p_tail;
         p_ll->p_tail->p_next = p_node;
     }
     p_ll->p_tail = p_node;
@@ -451,7 +449,6 @@ ezq_list_pop(
     assert(NULL != pp_item);
 
     p_front = p_ll->p_head;
-    p_ll->p_head->p_prev = NULL;
     p_ll->p_head = p_ll->p_head->p_next;
     --p_ll->count;
 

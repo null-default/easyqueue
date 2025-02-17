@@ -31,7 +31,7 @@ struct ezq_buffer
 };
 
 /*!
- * @struct ezq_linkedlist
+ * @struct ezq_linkedlist_node
  * @brief Structure encapsulating a node for use with \c ezq_linkedlist
  * instances.
  *
@@ -43,12 +43,12 @@ struct ezq_linkedlist_node
 {
     void * p_item; /* data in the list */
     struct ezq_linkedlist_node * p_next; /* next node in the list */
-    struct ezq_linkedlist_node * p_prev; /* previous node in the list */
 };
 
 /*!
  * @struct ezq_linkedlist
- * @brief Structure encapsulating a simple linked list implementation.
+ * @brief Structure encapsulating a simple singly-linked list implementation
+ * for use as the dynamic storage portion of an \c ezq_queue .
  *
  * @note This structure is exposed in the header to avoid necessitating that
  * instances of it be dynamically allocated, but this structure is not
