@@ -1,6 +1,7 @@
-cmake_minimum_required(VERSION 3.20.2)
+cmake_minimum_required(VERSION 3.13.0)
 project(easyqueue
-        DESCRIPTION "A simple queue implementation intended to support both performance and flexibility."
+        DESCRIPTION "A simple queue implementation intended to support flexible applicability and an easy-to-use interface."
+        HOMEPAGE_URL "https://github.com/null-default/easyqueue"
         LANGUAGES C)
 
 # Semantic Versioning, for the API version.
