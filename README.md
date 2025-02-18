@@ -9,7 +9,7 @@ Other features include:
 - Portability
   - Supports custom memory allocators
   - No external dependencies
-  - Written using C89-conformant syntax to maximize portability
+  - Written using C89-conformant syntax
 
 ## Usage
 
