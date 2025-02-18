@@ -30,8 +30,8 @@ typedef struct ezq_buffer ezq_buf; /* shorthand name for convenience */
 static void EZQ_API
 ezq_init_unsafe(
     ezq_queue * const p_queue,
-    const unsigned long capacity,
-    void *(*alloc_fn)(const unsigned long size),
+    const unsigned int capacity,
+    void *(*alloc_fn)(const size_t size),
     void (*free_fn)(void * const ptr)
 );
 
@@ -89,7 +89,7 @@ ezq_buf_pop(struct ezq_buffer * const p_buf, void ** const pp_item);
  */
 static struct ezq_linkedlist_node * EZQ_API
 ezq_list_create_node(
-    void * (*alloc_fn)(const unsigned long size),
+    void * (*alloc_fn)(const size_t size),
     void * const p_item
 );
 
@@ -155,7 +155,7 @@ ezq_status EZQ_API
 ezq_init(
     ezq_queue * const p_queue,
     const unsigned int capacity,
-    void *(*alloc_fn)(const unsigned long size),
+    void *(*alloc_fn)(const size_t size),
     void (*free_fn)(void * const ptr)
 )
 {
@@ -325,8 +325,8 @@ done:
 static void EZQ_API
 ezq_init_unsafe(
     ezq_queue * const p_queue,
-    const unsigned long capacity,
-    void *(*alloc_fn)(const unsigned long size),
+    const unsigned int capacity,
+    void *(*alloc_fn)(const size_t size),
     void (*free_fn)(void * const ptr)
 )
 {
@@ -384,7 +384,7 @@ ezq_buf_pop(struct ezq_buffer * const p_buf, void ** const pp_item)
 
 static struct ezq_linkedlist_node * EZQ_API
 ezq_list_create_node(
-    void * (*alloc_fn)(const unsigned long size),
+    void * (*alloc_fn)(const size_t size),
     void * const p_item
 )
 {

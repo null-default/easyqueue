@@ -1,6 +1,8 @@
 #ifndef EASYQUEUE_H
 #define EASYQUEUE_H
 
+#include <stddef.h>
+
 /* Macro definition to "tag" EZQ API functions. */
 #define EZQ_API
 
@@ -77,7 +79,7 @@ typedef struct ezq_queue
     unsigned int capacity; /* optional max number of items; 0 means no limit */
 
     /* function for dynamically allocating nodes in the linked list */
-    void *(*alloc_fn)(const unsigned long size);
+    void *(*alloc_fn)(const size_t size);
 
     /* function to release dynamically allocated nodes */
     void (*free_fn)(void * const ptr);
@@ -125,7 +127,7 @@ ezq_status EZQ_API
 ezq_init(
     ezq_queue * const p_queue,
     const unsigned int capacity,
-    void *(*alloc_fn)(const unsigned long size),
+    void *(*alloc_fn)(const size_t size),
     void (*free_fn)(void * const ptr)
 );
 
