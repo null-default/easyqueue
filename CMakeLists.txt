@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.13.0)
+cmake_minimum_required(VERSION 3.23.0)
 project(easyqueue
-        DESCRIPTION "A simple queue implementation intended to support flexible applicability and an easy-to-use interface."
+        DESCRIPTION "A simple queue implementation intended to support flexible applicability with an easy-to-use interface."
         HOMEPAGE_URL "https://github.com/null-default/easyqueue"
         LANGUAGES C)
 
@@ -18,27 +18,58 @@ set(EASYQUEUE_AGE_VERSION 0)       # only increment if ABI changes are backwards
 math(EXPR EASYQUEUE_SOVERSION "${EASYQUEUE_CURRENT_VERSION} - ${EASYQUEUE_AGE_VERSION}")
 set(EASYQUEUE_VERSION ${EASYQUEUE_SOVERSION}.${EASYQUEUE_AGE_VERSION}.${EASYQUEUE_REVISION_VERSION})
 
-# Set the generator used for this build.
-if(EASYQUEUE_USE_GENERATOR_MAKE)
-    set(CMAKE_GENERATOR "Unix Makefiles")
-else()
-    set(CMAKE_GENERATOR "Ninja")
-endif()
-
 # Allow the fixed-size buffer's capacity to be configured.
 set(EASYQUEUE_DEFAULT_FIXED_BUFFER_CAPACITY 32)
 if(NOT DEFINED EASYQUEUE_FIXED_BUFFER_CAPACITY)
     set(EASYQUEUE_FIXED_BUFFER_CAPACITY ${EASYQUEUE_DEFAULT_FIXED_BUFFER_CAPACITY})
 endif()
 
-# Build the library.
-add_library(${PROJECT_NAME} STATIC)
-target_include_directories(${PROJECT_NAME} PUBLIC include)
-target_compile_definitions(${PROJECT_NAME} PUBLIC EZQ_FIXED_BUFFER_CAPACITY=${EASYQUEUE_FIXED_BUFFER_CAPACITY})
-add_subdirectory(src)
+# Shared object
+add_library(${PROJECT_NAME} SHARED)
+target_compile_definitions(${PROJECT_NAME}
+        PUBLIC EZQ_FIXED_BUFFER_CAPACITY=${EASYQUEUE_FIXED_BUFFER_CAPACITY})
+set_target_properties(${PROJECT_NAME}
+        PROPERTIES C_STANDARD 90
+                   C_STANDARD_REQUIRED On
+                   C_EXTENSIONS Off
+                   POSITION_INDEPENDENT_CODE On)
+target_compile_options(${PROJECT_NAME}
+        PRIVATE -Wall -Werror -Wextra -Wpedantic)
+target_sources(${PROJECT_NAME}
+        PRIVATE src/easyqueue.c
+        PUBLIC FILE_SET easyqueue_headers
+            TYPE HEADERS
+            BASE_DIRS include
+            FILES include/easyqueue.h)
+target_link_options(${PROJECT_NAME} PRIVATE -nostdlib)
+
+# Static archive
+add_library(${PROJECT_NAME}_static STATIC)
+target_compile_definitions(${PROJECT_NAME}_static
+        PUBLIC EZQ_FIXED_BUFFER_CAPACITY=${EASYQUEUE_FIXED_BUFFER_CAPACITY})
+set_target_properties(${PROJECT_NAME}_static
+        PROPERTIES C_STANDARD 90
+                   C_STANDARD_REQUIRED On
+                   C_EXTENSIONS Off
+                   POSITION_INDEPENDENT_CODE On)
+target_compile_options(${PROJECT_NAME}_static
+        PRIVATE -Wall -Werror -Wextra -Wpedantic)
+target_sources(${PROJECT_NAME}_static
+        PRIVATE src/easyqueue.c
+        PUBLIC FILE_SET easyqueue_headers
+            TYPE HEADERS
+            BASE_DIRS include
+            FILES include/easyqueue.h)
 
 # Example executables that demonstrate usage of the library can be compiled if
 # EASYQUEUE_BUILD_EXAMPLES is provided as a CMake variable.
 if(EASYQUEUE_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
+
+# Set installation rules
+install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_static
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        FILE_SET easyqueue_headers)

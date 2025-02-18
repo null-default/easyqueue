@@ -1,5 +1,5 @@
 # Easyqueue
-Easyqueue is simple queue implementation in C intended to support flexible applicability and a simple interface. It encapsulates a fixed-size buffer in which items are stored that is augmented by a dynamically allocated singly-linked list when the fixed-size buffer is filled.
+Easyqueue is a simple queue implementation in C intended to support flexible applicability with a simple interface. It encapsulates a fixed-size buffer in which items are stored that is augmented by a dynamically allocated singly-linked list when the fixed-size buffer is filled.
 
 Other features include:
 
