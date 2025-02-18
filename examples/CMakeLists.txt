@@ -8,5 +8,7 @@ set_target_properties(easyqueue_example PROPERTIES C_STANDARD 90
 target_compile_options(easyqueue_example PRIVATE -Wall -Werror -Wextra -Wpedantic)
 
 if(EASYQUEUE_BUILD_32)
-    target_compile_options(easyqueue_example PRIVATE -m32)
+    set_target_properties(easyqueue_example
+            PROPERTIES COMPILE_FLAGS "-m32"
+                       LINK_FLAGS "-m32")
 endif()

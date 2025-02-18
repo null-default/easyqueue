@@ -68,7 +68,8 @@ if(EASYQUEUE_BUILD_32)
             PROPERTIES COMPILE_FLAGS "-m32"
                        LINK_FLAGS "-m32")
     target_compile_options(${PROJECT_NAME}
-            PRIVATE -fno-stack-protector)
+            PRIVATE -fno-stack-protector) # is this the best option..?
+
     set_target_properties(${PROJECT_NAME}_static
             PROPERTIES COMPILE_FLAGS "-m32"
                        LINK_FLAGS "-m32")
