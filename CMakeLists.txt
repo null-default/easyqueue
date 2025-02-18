@@ -18,6 +18,8 @@ set(EASYQUEUE_AGE_VERSION 0)       # only increment if ABI changes are backwards
 math(EXPR EASYQUEUE_SOVERSION "${EASYQUEUE_CURRENT_VERSION} - ${EASYQUEUE_AGE_VERSION}")
 set(EASYQUEUE_VERSION ${EASYQUEUE_SOVERSION}.${EASYQUEUE_AGE_VERSION}.${EASYQUEUE_REVISION_VERSION})
 
+option(EASYQUEUE_BUILD_32 "Build 32-bit binaries instead of 64-bit." Off)
+
 # Allow the fixed-size buffer's capacity to be configured.
 set(EASYQUEUE_DEFAULT_FIXED_BUFFER_CAPACITY 32)
 if(NOT DEFINED EASYQUEUE_FIXED_BUFFER_CAPACITY)
@@ -60,6 +62,19 @@ target_sources(${PROJECT_NAME}_static
             TYPE HEADERS
             BASE_DIRS include
             FILES include/easyqueue.h)
+
+if(EASYQUEUE_BUILD_32)
+    set_target_properties(${PROJECT_NAME}
+            PROPERTIES COMPILE_FLAGS "-m32"
+                       LINK_FLAGS "-m32")
+    target_compile_options(${PROJECT_NAME}
+            PRIVATE -fno-stack-protector)
+    set_target_properties(${PROJECT_NAME}_static
+            PROPERTIES COMPILE_FLAGS "-m32"
+                       LINK_FLAGS "-m32")
+    target_compile_options(${PROJECT_NAME}_static
+            PRIVATE -fno-stack-protector)
+endif()
 
 # Example executables that demonstrate usage of the library can be compiled if
 # EASYQUEUE_BUILD_EXAMPLES is provided as a CMake variable.
