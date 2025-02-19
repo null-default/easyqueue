@@ -39,11 +39,12 @@ Easyqueue currently supports the following build systems, whose relevant files a
 
 Easyqueue supports some configuration options, depending on your build system.
 
-|   Option Type    |            Option/Flag            | Description                                                                                   | Default Value |
-|:----------------:|:---------------------------------:|-----------------------------------------------------------------------------------------------|:-------------:|
-| Compilation Flag |    `EZQ_FIXED_BUFFER_CAPACITY`    | Sets the number of items an `ezq_queue` will support before dynamically allocating new nodes. |     `32`      |
-|  CMake Variable  | `EASYQUEUE_FIXED_BUFFER_CAPACITY` | CMake variable equivalent to the `EZQ_FIXED_BUFFER_CAPACITY` compilation flag.                |     `32`      |
-|  CMake Variable  |    `EASYQUEUE_BUILD_EXAMPLES`     | If set/defined, any example programs in the `examples/` directory will be built.              |    _unset_    |
+|            Option/Flag            |   Option Type    | Description                                                                                                                        | Default Value |
+|:---------------------------------:|:----------------:|------------------------------------------------------------------------------------------------------------------------------------|:-------------:|
+|    `EZQ_FIXED_BUFFER_CAPACITY`    | Compilation Flag | Sets the number of items an `ezq_queue` will support before dynamically allocating new nodes.                                      |     `32`      |
+| `EASYQUEUE_FIXED_BUFFER_CAPACITY` |  CMake Variable  | CMake variable equivalent to the `EZQ_FIXED_BUFFER_CAPACITY` compilation flag.                                                     |     `32`      |
+|    `EASYQUEUE_BUILD_EXAMPLES`     |  CMake Variable  | If set/defined, any example programs in the `examples/` directory will be built.                                                   |    _unset_    |
+|       `EASYQUEUE_BUILD_32`        |   CMake Option   | If set, the build outputs (to include any examples) are built for 32-bit systems. _Setting this option disables stack protection._ |     `OFF`     |
 
 ## Example
 
@@ -86,5 +87,6 @@ int main(int argc, char **argv) {
 - Compile-time flags to support...
   - Requiring allocation and free functions to be provided to `ezq_init()`
   - Disabling linked list functionality entirely (i.e. only support `EZQ_FIXED_BUFFER_CAPACITY` items)
-- Support for other build systems
+- Support for other build systems, including...
+  - Standalone `make` 
   - `meson`

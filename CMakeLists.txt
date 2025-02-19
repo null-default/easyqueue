@@ -18,7 +18,8 @@ set(EASYQUEUE_AGE_VERSION 0)       # only increment if ABI changes are backwards
 math(EXPR EASYQUEUE_SOVERSION "${EASYQUEUE_CURRENT_VERSION} - ${EASYQUEUE_AGE_VERSION}")
 set(EASYQUEUE_VERSION ${EASYQUEUE_SOVERSION}.${EASYQUEUE_AGE_VERSION}.${EASYQUEUE_REVISION_VERSION})
 
-option(EASYQUEUE_BUILD_32 "Build 32-bit binaries instead of 64-bit." Off)
+# Define any boolean options that will tune the build.
+option(EASYQUEUE_BUILD_32 "Build 32-bit binaries instead of 64-bit." OFF)
 
 # Allow the fixed-size buffer's capacity to be configured.
 set(EASYQUEUE_DEFAULT_FIXED_BUFFER_CAPACITY 32)
@@ -26,43 +27,44 @@ if(NOT DEFINED EASYQUEUE_FIXED_BUFFER_CAPACITY)
     set(EASYQUEUE_FIXED_BUFFER_CAPACITY ${EASYQUEUE_DEFAULT_FIXED_BUFFER_CAPACITY})
 endif()
 
-# Shared object
+# Build a shared object.
 add_library(${PROJECT_NAME} SHARED)
 target_compile_definitions(${PROJECT_NAME}
         PUBLIC EZQ_FIXED_BUFFER_CAPACITY=${EASYQUEUE_FIXED_BUFFER_CAPACITY})
 set_target_properties(${PROJECT_NAME}
         PROPERTIES C_STANDARD 90
-                   C_STANDARD_REQUIRED On
-                   C_EXTENSIONS Off
-                   POSITION_INDEPENDENT_CODE On)
+                   C_STANDARD_REQUIRED ON
+                   C_EXTENSIONS OFF
+                   POSITION_INDEPENDENT_CODE ON)
 target_compile_options(${PROJECT_NAME}
         PRIVATE -Wall -Werror -Wextra -Wpedantic)
 target_sources(${PROJECT_NAME}
         PRIVATE src/easyqueue.c
         PUBLIC FILE_SET easyqueue_headers
-            TYPE HEADERS
-            BASE_DIRS include
-            FILES include/easyqueue.h)
+                        TYPE HEADERS
+                        BASE_DIRS include
+                        FILES include/easyqueue.h)
 target_link_options(${PROJECT_NAME} PRIVATE -nostdlib)
 
-# Static archive
+# Build a static archive.
 add_library(${PROJECT_NAME}_static STATIC)
 target_compile_definitions(${PROJECT_NAME}_static
         PUBLIC EZQ_FIXED_BUFFER_CAPACITY=${EASYQUEUE_FIXED_BUFFER_CAPACITY})
 set_target_properties(${PROJECT_NAME}_static
         PROPERTIES C_STANDARD 90
-                   C_STANDARD_REQUIRED On
-                   C_EXTENSIONS Off
-                   POSITION_INDEPENDENT_CODE On)
+                   C_STANDARD_REQUIRED ON
+                   C_EXTENSIONS OFF
+                   POSITION_INDEPENDENT_CODE ON)
 target_compile_options(${PROJECT_NAME}_static
         PRIVATE -Wall -Werror -Wextra -Wpedantic)
 target_sources(${PROJECT_NAME}_static
         PRIVATE src/easyqueue.c
         PUBLIC FILE_SET easyqueue_headers
-            TYPE HEADERS
-            BASE_DIRS include
-            FILES include/easyqueue.h)
+                        TYPE HEADERS
+                        BASE_DIRS include
+                        FILES include/easyqueue.h)
 
+# Set additional flags for 32-bit builds.
 if(EASYQUEUE_BUILD_32)
     set_target_properties(${PROJECT_NAME}
             PROPERTIES COMPILE_FLAGS "-m32"
