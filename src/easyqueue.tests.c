@@ -92,11 +92,141 @@ test__ezq_init__null_queue__failure(void)
     TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_NULL_QUEUE, estat);
 } /* test__ezq_init__null_queue__failure */
 
+static void
+test__ezq_push__standard__success(void)
+{
+
+} /* test__ezq_push__standard__success */
+
+static void
+test__ezq_push__null_queue__failure(void)
+{
+
+} /* test__ezq_push__null_queue__failure */
+
+static void
+test__ezq_push__null_item__failure(void)
+{
+
+} /* test__ezq_push__null_item__failure */
+
+static void
+test__ezq_push__capacity_full__failure(void)
+{
+
+} /* test__ezq_push__capacity_full__failure */
+
+static void
+test__ezq_push__no_alloc_fn__failure(void)
+{
+
+} /* test__ezq_push__no_alloc_fn__failure */
+
+static void
+test__ezq_push__alloc_fail__failure(void)
+{
+
+} /* test__ezq_push__alloc_fail__failure */
+
+static void
+test__ezq_pop__standard__success(void)
+{
+
+} /* test__ezq_pop__standard__success */
+
+static void
+test__ezq_pop__null_queue__failure(void)
+{
+
+} /* test__ezq_pop__null_queue__failure */
+
+static void
+test__ezq_pop__null_out__failure(void)
+{
+
+} /* test__ezq_pop__null_out__failure */
+
+static void
+test__ezq_pop__empty__failure(void)
+{
+
+} /* test__ezq_pop__empty__failure */
+
+static void
+test__ezq_pop__no_free_fn__failure(void)
+{
+
+} /* test__ezq_pop__no_free_fn__failure */
+
+static void
+test__ezq_count__zero_count__success(void)
+{
+
+} /* test__ezq_count__zero_count__success */
+
+static void
+test__ezq_count__non_zero_count__success(void)
+{
+
+} /* test__ezq_count__non_zero_count__success */
+
+static void
+test__ezq_count__null_queue__failure(void)
+{
+
+} /* test__ezq_count__null_queue__failure */
+
+static void
+test__ezq_destroy__empty_queue__success(void)
+{
+
+} /* test__ezq_destroy__empty_queue__success */
+
+static void
+test__ezq_destroy__non_null_cleanup_fn__success(void)
+{
+
+} /* test__ezq_destroy__non_null_cleanup_fn__success */
+
+static void
+test__ezq_destroy__null_cleanup_fn__success(void)
+{
+
+} /* test__ezq_destroy__null_cleanup_fn__success */
+
+static void
+test__ezq_destroy__null_queue__failure(void)
+{
+
+} /* test__ezq_destroy__null_queue__failure */
+
 int main(int argc, char **argv) {
     UNITY_BEGIN();
 
     RUN_TEST(test__ezq_init__standard__success);
     RUN_TEST(test__ezq_init__null_queue__failure);
+
+    RUN_TEST(test__ezq_push__standard__success);
+    RUN_TEST(test__ezq_push__null_queue__failure);
+    RUN_TEST(test__ezq_push__null_item__failure);
+    RUN_TEST(test__ezq_push__capacity_full__failure);
+    RUN_TEST(test__ezq_push__no_alloc_fn__failure);
+    RUN_TEST(test__ezq_push__alloc_fail__failure);
+
+    RUN_TEST(test__ezq_pop__standard__success);
+    RUN_TEST(test__ezq_pop__null_queue__failure);
+    RUN_TEST(test__ezq_pop__null_out__failure);
+    RUN_TEST(test__ezq_pop__empty__failure);
+    RUN_TEST(test__ezq_pop__no_free_fn__failure);
+
+    RUN_TEST(test__ezq_count__zero_count__success);
+    RUN_TEST(test__ezq_count__non_zero_count__success);
+    RUN_TEST(test__ezq_count__null_queue__failure);
+
+    RUN_TEST(test__ezq_destroy__empty_queue__success);
+    RUN_TEST(test__ezq_destroy__null_cleanup_fn__success);
+    RUN_TEST(test__ezq_destroy__non_null_cleanup_fn__success);
+    RUN_TEST(test__ezq_destroy__null_queue__failure);
 
     return UNITY_END();
 } /* main */
