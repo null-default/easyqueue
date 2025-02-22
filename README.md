@@ -10,6 +10,7 @@ Other features include:
   - Supports custom memory allocators
   - No external dependencies
   - Written using C89-conformant syntax
+- Fully unit tested
 
 ## Usage
 
@@ -39,12 +40,12 @@ Easyqueue currently supports the following build systems, whose relevant files a
 
 Easyqueue supports some configuration options, depending on your build system.
 
-|            Option/Flag            |   Option Type    | Description                                                                                                                        | Default Value |
-|:---------------------------------:|:----------------:|------------------------------------------------------------------------------------------------------------------------------------|:-------------:|
-|    `EZQ_FIXED_BUFFER_CAPACITY`    | Compilation Flag | Sets the number of items an `ezq_queue` will support before dynamically allocating new nodes.                                      |     `32`      |
-| `EASYQUEUE_FIXED_BUFFER_CAPACITY` |  CMake Variable  | CMake variable equivalent to the `EZQ_FIXED_BUFFER_CAPACITY` compilation flag.                                                     |     `32`      |
-|    `EASYQUEUE_BUILD_EXAMPLES`     |  CMake Variable  | If set/defined, any example programs in the `examples/` directory will be built.                                                   |    _unset_    |
-|       `EASYQUEUE_BUILD_32`        |   CMake Option   | If set, the build outputs (to include any examples) are built for 32-bit systems. _Setting this option disables stack protection._ |     `OFF`     |
+|            Option/Flag            |   Option Type    | Description                                                                                                                                | Default Value |
+|:---------------------------------:|:----------------:|--------------------------------------------------------------------------------------------------------------------------------------------|:-------------:|
+|    `EZQ_FIXED_BUFFER_CAPACITY`    | Compilation Flag | Sets the number of items an `ezq_queue` will support before dynamically allocating new nodes.                                              |     `32`      |
+| `EASYQUEUE_FIXED_BUFFER_CAPACITY` |  CMake Variable  | CMake variable equivalent to the `EZQ_FIXED_BUFFER_CAPACITY` compilation flag.                                                             |     `32`      |
+|    `EASYQUEUE_BUILD_EXAMPLES`     |  CMake Variable  | If set/defined, any example programs in the `examples/` directory will be built.                                                           |    _unset_    |
+|       `EASYQUEUE_BUILD_32`        |   CMake Option   | If set/enabled, the build outputs (to include any examples) are built for 32-bit systems. _Setting this option disables stack protection._ |     `OFF`     |
 
 ## Example
 
@@ -81,9 +82,18 @@ int main(int argc, char **argv) {
 }
 ```
 
+## Tests
+
+Easyqueue uses [Unity](https://www.throwtheswitch.org/unity) for its unit tests. Unit tests are controlled via the following options:
+
+|            Option/Flag            |   Option Type    | Description                                                                                                                                                                                    | Default Value |
+|:---------------------------------:|:----------------:|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-------------:|
+|   `EASYQUEUE_BUILD_UNIT_TESTS`    |   CMake Option   | If set/enabled, unit tests will also be compiled (into their own executable). Unit tests require [Unity](https://www.throwtheswitch.org/unity) to have an existing installation on the system. |     `OFF`     |
+
+_NOTE: 32-bit builds of unit tests are not supported at this time._
+
 ## TODOs
 
-- Unit tests
 - Compile-time flags to support...
   - Requiring allocation and free functions to be provided to `ezq_init()`
   - Disabling linked list functionality entirely (i.e. only support `EZQ_FIXED_BUFFER_CAPACITY` items)
