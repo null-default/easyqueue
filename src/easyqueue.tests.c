@@ -523,22 +523,62 @@ test__ezq_pop__no_free_fn__failure(void)
     TEST_ASSERT_EQUAL_PTR(0xFF, p_item);
 } /* test__ezq_pop__no_free_fn__failure */
 
+/*!
+ * @brief Tests that \c ezq_count succeeds properly when the queue contains
+ * no items.
+ */
 static void
 test__ezq_count__zero_count__success(void)
 {
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    unsigned int count = 0;
 
+    /* Set any initial state. */
+    queue.fixed.count = 0;
+    queue.dynamic.count = 0;
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    count = ezq_count(&queue, &estat);
+    TEST_ASSERT_EQUAL_UINT(0, count);
+    TEST_ASSERT_EQUAL(EZQ_STATUS_SUCCESS, estat);
 } /* test__ezq_count__zero_count__success */
 
+/*!
+ * @brief Tests that \c ezq_count succeeds properly when the queue contains
+ * any items.
+ */
 static void
 test__ezq_count__non_zero_count__success(void)
 {
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    unsigned int count = 0;
 
+    /* Set any initial state. */
+    queue.fixed.count = 5;
+    queue.dynamic.count = 3;
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    count = ezq_count(&queue, &estat);
+    TEST_ASSERT_EQUAL_UINT(queue.fixed.count + queue.dynamic.count, count);
+    TEST_ASSERT_EQUAL(EZQ_STATUS_SUCCESS, estat);
 } /* test__ezq_count__non_zero_count__success */
 
+/*!
+ * @brief Test that \c ezq_count fails when passed an \c ezq_queue pointer
+ * that is \c NULL .
+ */
 static void
 test__ezq_count__null_queue__failure(void)
 {
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    unsigned int count = 0;
 
+    /* Invoke the function being tested and verify the expected outcome. */
+    count = ezq_count(NULL, &estat);
+    TEST_ASSERT_EQUAL_UINT(0, count);
+    TEST_ASSERT_EQUAL(EZQ_STATUS_NULL_QUEUE, estat);
 } /* test__ezq_count__null_queue__failure */
 
 static void
