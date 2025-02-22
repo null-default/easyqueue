@@ -140,6 +140,10 @@ test__ezq_init__null_queue__failure(void)
     TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_NULL_QUEUE, estat);
 } /* test__ezq_init__null_queue__failure */
 
+/*!
+ * @brief Tests that \c ezq_push properly pushes to the underlying
+ * fixed-size buffer when given standard valid arguments.
+ */
 static void
 test__ezq_push__buf__success(void)
 {
@@ -147,13 +151,31 @@ test__ezq_push__buf__success(void)
     ezq_status estat = EZQ_STATUS_UNKNOWN;
     int *p_item = (int *)0xFF;
 
+    /* Set any initial state. */
+    queue.fixed.count = 0;
+    queue.fixed.front_index = 0;
+    queue.fixed.p_items[0] = NULL;
+    queue.dynamic.count = 0;
+    queue.dynamic.p_head = NULL;
+    queue.dynamic.p_tail = NULL;
+
+    /* Invoke the function being tested and verify the expected outcome. */
     estat = ezq_push(&queue, p_item);
     TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_SUCCESS, estat);
     TEST_ASSERT_EQUAL_PTR(p_item, queue.fixed.p_items[0]);
     TEST_ASSERT_EQUAL_UINT32(1, queue.fixed.count);
     TEST_ASSERT_EQUAL_UINT32(0, queue.fixed.front_index);
+
+    /* Validate that nothing else was unexpectedly modified. */
+    TEST_ASSERT_EQUAL_UINT32(0, queue.dynamic.count);
+    TEST_ASSERT_NULL(queue.dynamic.p_head);
+    TEST_ASSERT_NULL(queue.dynamic.p_tail);
 } /* test__ezq_push__buf__success */
 
+/*!
+ * @brief Tests that \c ezq_push properly pushes to the underlying linked
+ * list when the fixed size buffer is full.
+ */
 static void
 test__ezq_push__list__success(void)
 {
@@ -162,10 +184,12 @@ test__ezq_push__list__success(void)
     int *p_item = (int *)0xFF;
     struct ezq_linkedlist_node node = { NULL, NULL };
 
+    /* Set any initial state. */
     alloc_fn_push(&node);
     queue.alloc_fn = alloc_fn_custom;
     queue.fixed.count = EZQ_FIXED_BUFFER_CAPACITY;
 
+    /* Invoke the function being tested and verify the expected outcome. */
     estat = ezq_push(&queue, p_item);
     TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_SUCCESS, estat);
     TEST_ASSERT_EQUAL_PTR(&node, queue.dynamic.p_head);
@@ -174,30 +198,42 @@ test__ezq_push__list__success(void)
     TEST_ASSERT_NULL(node.p_next);
 } /* test__ezq_push__list__success */
 
+/*!
+ * @brief Tests that \c ezq_push fails when the passed \c ezq_queue pointer
+ * is \c NULL .
+ */
 static void
 test__ezq_push__null_queue__failure(void)
 {
     ezq_status estat = EZQ_STATUS_UNKNOWN;
     int *p_item = (int *)0xFF;
 
+    /* Invoke the function being tested and verify the expected outcome. */
     estat = ezq_push(NULL, p_item);
     TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_NULL_QUEUE, estat);
 } /* test__ezq_push__null_queue__failure */
 
+/*!
+ * @brief Tests that \c ezq_push fails when the passed item is \c NULL .
+ */
 static void
 test__ezq_push__null_item__failure(void)
 {
     ezq_queue queue = { 0 };
     ezq_status estat = EZQ_STATUS_UNKNOWN;
 
+    /* Set any initial state. */
     queue.fixed.count = 0;
     queue.fixed.p_items[0] = NULL;
     queue.dynamic.count = 0;
     queue.dynamic.p_head = NULL;
     queue.dynamic.p_tail = NULL;
 
+    /* Invoke the function being tested and verify the expected outcome. */
     estat = ezq_push(&queue, NULL);
     TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_NULL_ITEM, estat);
+
+    /* Validate that nothing else was unexpectedly modified. */
     TEST_ASSERT_EQUAL_UINT32(0, queue.fixed.count);
     TEST_ASSERT_EQUAL_UINT32(0, queue.dynamic.count);
     TEST_ASSERT_NULL(queue.fixed.p_items[0]);
@@ -205,23 +241,69 @@ test__ezq_push__null_item__failure(void)
     TEST_ASSERT_NULL(queue.dynamic.p_tail);
 } /* test__ezq_push__null_item__failure */
 
+/*!
+ * @brief Tests that \c ezq_push fails when the queue has a non-zero
+ * capacity and the underlying fixed-size buffer has reached that
+ * capacity.
+ */
 static void
-test__ezq_push__capacity_full__failure(void)
+test__ezq_push__capacity_full_buf__failure(void)
 {
     ezq_queue queue = { 0 };
     ezq_status estat = EZQ_STATUS_UNKNOWN;
     int *p_item = (int *)0xFF;
 
+    /* Set any initial state. */
     queue.capacity = 1;
     queue.fixed.count = 1;
+    queue.fixed.p_items[0] = NULL;
     queue.dynamic.count = 0;
 
+    /* Invoke the function being tested and verify the expected outcome. */
     estat = ezq_push(&queue, p_item);
     TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_FULL, estat);
-    TEST_ASSERT_EQUAL_UINT32(1, queue.fixed.count);
-    TEST_ASSERT_EQUAL_UINT32(0, queue.dynamic.count);
-} /* test__ezq_push__capacity_full__failure */
 
+    /* Validate that nothing else was unexpectedly modified. */
+    TEST_ASSERT_EQUAL_UINT32(1, queue.fixed.count);
+    TEST_ASSERT_NULL(queue.fixed.p_items[0]);
+    TEST_ASSERT_EQUAL_UINT32(0, queue.dynamic.count);
+} /* test__ezq_push__capacity_full_buf__failure */
+
+/*!
+ * @brief Tests that \c ezq_push fails when the queue has a non-zero
+ * capacity and the underlying fixed-size buffer and underlying
+ * linked list combined have reached that capacity.
+ */
+static void
+test__ezq_push__capacity_full_list__failure(void)
+{
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    int *p_item = (int *)0xFF;
+
+    /* Set any initial state. */
+    queue.capacity = EZQ_FIXED_BUFFER_CAPACITY + 1;
+    queue.fixed.count = EZQ_FIXED_BUFFER_CAPACITY;
+    queue.dynamic.count = 1;
+    queue.dynamic.p_head = NULL;
+    queue.dynamic.p_tail = NULL;
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_push(&queue, p_item);
+    TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_FULL, estat);
+
+    /* Validate that nothing else was unexpectedly modified. */
+    TEST_ASSERT_EQUAL_UINT32(EZQ_FIXED_BUFFER_CAPACITY, queue.fixed.count);
+    TEST_ASSERT_EQUAL_UINT32(1, queue.dynamic.count);
+    TEST_ASSERT_NULL(queue.dynamic.p_head);
+    TEST_ASSERT_NULL(queue.dynamic.p_tail);
+} /* test__ezq_push__capacity_full_list__failure */
+
+/*!
+ * @brief Tests that \c ezq_push fails when it needs to push an item
+ * onto the underlying linked list but has no dynamic memory allocation
+ * function registered.
+ */
 static void
 test__ezq_push__no_alloc_fn__failure(void)
 {
@@ -229,20 +311,29 @@ test__ezq_push__no_alloc_fn__failure(void)
     ezq_status estat = EZQ_STATUS_UNKNOWN;
     int *p_item = (int *)0xFF;
 
+    /* Set any initial state. */
     queue.alloc_fn = NULL;
     queue.fixed.count = EZQ_FIXED_BUFFER_CAPACITY;
     queue.dynamic.p_head = NULL;
     queue.dynamic.p_tail = NULL;
     queue.dynamic.count = 0;
 
+    /* Invoke the function being tested and verify the expected outcome. */
     estat = ezq_push(&queue, p_item);
     TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_NO_ALLOC_FN, estat);
+
+    /* Validate that nothing else was unexpectedly modified. */
     TEST_ASSERT_EQUAL_UINT32(EZQ_FIXED_BUFFER_CAPACITY, queue.fixed.count);
     TEST_ASSERT_EQUAL_UINT32(0, queue.dynamic.count);
     TEST_ASSERT_NULL(queue.dynamic.p_head);
     TEST_ASSERT_NULL(queue.dynamic.p_tail);
 } /* test__ezq_push__no_alloc_fn__failure */
 
+/*!
+ * @brief Tests that \c ezq_push fails when it needs to push an item
+ * onto the underlying linked list but its dynamic memory allocation
+ * function fails.
+ */
 static void
 test__ezq_push__alloc_fail__failure(void)
 {
@@ -250,14 +341,18 @@ test__ezq_push__alloc_fail__failure(void)
     ezq_status estat = EZQ_STATUS_UNKNOWN;
     int *p_item = (int *)0xFF;
 
+    /* Set any initial state. */
     queue.alloc_fn = alloc_fn_custom;
     queue.fixed.count = EZQ_FIXED_BUFFER_CAPACITY;
     queue.dynamic.p_head = NULL;
     queue.dynamic.p_tail = NULL;
     queue.dynamic.count = 0;
 
+    /* Invoke the function being tested and verify the expected outcome. */
     estat = ezq_push(&queue, p_item);
     TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_ALLOC_FAILURE, estat);
+
+    /* Validate that nothing else was unexpectedly modified. */
     TEST_ASSERT_EQUAL_UINT32(EZQ_FIXED_BUFFER_CAPACITY, queue.fixed.count);
     TEST_ASSERT_EQUAL_UINT32(0, queue.dynamic.count);
     TEST_ASSERT_NULL(queue.dynamic.p_head);
@@ -352,7 +447,8 @@ int main(int argc, char **argv) {
     RUN_TEST(test__ezq_push__list__success);
     RUN_TEST(test__ezq_push__null_queue__failure);
     RUN_TEST(test__ezq_push__null_item__failure);
-    RUN_TEST(test__ezq_push__capacity_full__failure);
+    RUN_TEST(test__ezq_push__capacity_full_buf__failure);
+    RUN_TEST(test__ezq_push__capacity_full_list__failure);
     RUN_TEST(test__ezq_push__no_alloc_fn__failure);
     RUN_TEST(test__ezq_push__alloc_fail__failure);
 
