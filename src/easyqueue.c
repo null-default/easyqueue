@@ -313,6 +313,11 @@ ezq_destroy(
         estat = EZQ_STATUS_NULL_QUEUE;
         goto done;
     }
+    if (p_queue->dynamic.count > 0 && NULL == p_queue->free_fn)
+    {
+        estat = EZQ_STATUS_NO_FREE_FN;
+        goto done;
+    }
 
     ezq_destroy_unsafe(p_queue, item_cleanup_fn, p_args);
 
@@ -441,9 +446,14 @@ ezq_list_pop(
     p_front = p_ll->p_head;
     p_ll->p_head = p_ll->p_head->p_next;
     --p_ll->count;
+    if (0 == p_ll->count)
+    {
+        p_ll->p_tail = NULL;
+    }
 
     *pp_item = p_front->p_item;
     p_front->p_item = NULL;
+    p_front->p_next = NULL;
 
     if (NULL != free_fn)
     {
@@ -482,4 +492,9 @@ ezq_destroy_unsafe(
             item_cleanup_fn(p_item, p_args);
         }
     }
+
+    /* Clear the other fields of the queue. */
+    p_queue->alloc_fn = NULL;
+    p_queue->free_fn = NULL;
+    p_queue->capacity = 0;
 } /* ezq_destroy_unsafe */
