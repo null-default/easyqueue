@@ -40,7 +40,7 @@ void tearDown(void) { } /* UNUSED; required definition for Unity tests */
  * no return values have been set on the stack, \c NULL is returned.
  */
 static void *
-alloc_fn_custom(const size_t size)
+custom_alloc_fn(const size_t size)
 {
     void *p_addr = NULL;
 
@@ -59,7 +59,7 @@ alloc_fn_custom(const size_t size)
 done:
     (void)size;
     return p_addr;
-} /* alloc_fn_custom */
+} /* custom_alloc_fn */
 
 /*!
  * @brief Pushes \c ptr to the top of the global dummy allocation stack
@@ -68,14 +68,14 @@ done:
  * @param[in] ptr The address to push onto the stack.
  */
 static void
-alloc_fn_push(void * const ptr)
+custom_alloc_fn_push(void * const ptr)
 {
     if (g_alloc_stack.top_index + 1 < CUSTOM_ALLOC_STACK_SIZE)
     {
         ++g_alloc_stack.top_index;
     }
     g_alloc_stack.return_stack[g_alloc_stack.top_index] = ptr;
-} /* alloc_fn_push */
+} /* custom_alloc_fn_push */
 
 /*!
  * @brief Does nothing.
@@ -86,10 +86,10 @@ alloc_fn_push(void * const ptr)
  * @param[in] ptr UNUSED
  */
 static void
-free_fn_custom(void * const ptr)
+custom_free_fn(void * const ptr)
 {
     (void)ptr;
-} /* free_fn_custom */
+} /* custom_free_fn */
 
 /*!
  * @brief Test that \c ezq_init succeeds when provided standard valid
@@ -108,7 +108,7 @@ test__ezq_init__standard__success(void)
         ((unsigned char *)&queue)[i] = 0xFF;
     }
 
-    estat = ezq_init(&queue, TEST_CAPACITY, alloc_fn_custom, free_fn_custom);
+    estat = ezq_init(&queue, TEST_CAPACITY, custom_alloc_fn, custom_free_fn);
     TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_SUCCESS, estat);
     for (i = 0; i < EZQ_FIXED_BUFFER_CAPACITY; ++i)
     {
@@ -122,8 +122,8 @@ test__ezq_init__standard__success(void)
     TEST_ASSERT_EQUAL(0, queue.dynamic.count);
 
     TEST_ASSERT_EQUAL(TEST_CAPACITY, queue.capacity);
-    TEST_ASSERT_EQUAL_PTR(queue.alloc_fn, alloc_fn_custom);
-    TEST_ASSERT_EQUAL_PTR(queue.free_fn, free_fn_custom);
+    TEST_ASSERT_EQUAL_PTR(queue.alloc_fn, custom_alloc_fn);
+    TEST_ASSERT_EQUAL_PTR(queue.free_fn, custom_free_fn);
 } /* test__ezq_init__standard__success */
 
 /*!
@@ -136,7 +136,7 @@ test__ezq_init__null_queue__failure(void)
     const unsigned int TEST_CAPACITY = 100;
     ezq_status estat = EZQ_STATUS_UNKNOWN;
 
-    estat = ezq_init(NULL, TEST_CAPACITY, alloc_fn_custom, free_fn_custom);
+    estat = ezq_init(NULL, TEST_CAPACITY, custom_alloc_fn, custom_free_fn);
     TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_NULL_QUEUE, estat);
 } /* test__ezq_init__null_queue__failure */
 
@@ -185,8 +185,8 @@ test__ezq_push__list__success(void)
     struct ezq_linkedlist_node node = { NULL, NULL };
 
     /* Set any initial state. */
-    alloc_fn_push(&node);
-    queue.alloc_fn = alloc_fn_custom;
+    custom_alloc_fn_push(&node);
+    queue.alloc_fn = custom_alloc_fn;
     queue.fixed.count = EZQ_FIXED_BUFFER_CAPACITY;
 
     /* Invoke the function being tested and verify the expected outcome. */
@@ -342,7 +342,7 @@ test__ezq_push__alloc_fail__failure(void)
     int *p_item = (int *)0xFF;
 
     /* Set any initial state. */
-    queue.alloc_fn = alloc_fn_custom;
+    queue.alloc_fn = custom_alloc_fn;
     queue.fixed.count = EZQ_FIXED_BUFFER_CAPACITY;
     queue.dynamic.p_head = NULL;
     queue.dynamic.p_tail = NULL;
