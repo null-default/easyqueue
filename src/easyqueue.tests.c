@@ -91,6 +91,19 @@ custom_free_fn(void * const ptr)
 } /* custom_free_fn */
 
 /*!
+ * @brief Custom cleanup function that increments a passed integer.
+ *
+ * @param[in] p_item UNUSED
+ * @param[out] p_args Address of an integer to increment.
+ */
+static void
+custom_cleanup_fn(void * const p_item, void *p_args)
+{
+    (void)p_item;
+    ++*(unsigned int *)p_args;
+} /* custom_cleanup_fn */
+
+/*!
  * @brief Test that \c ezq_init succeeds when provided standard valid
  * arguments.
  */
@@ -581,36 +594,215 @@ test__ezq_count__null_queue__failure(void)
     TEST_ASSERT_EQUAL(EZQ_STATUS_NULL_QUEUE, estat);
 } /* test__ezq_count__null_queue__failure */
 
+/*!
+ * @brief Tests that \c ezq_destroy succeeds when called on an empty queue.
+ */
 static void
 test__ezq_destroy__empty_queue__success(void)
 {
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
 
+    /* Set any initial state. */
+    queue.fixed.count = 0;
+    queue.dynamic.count = 0;
+    queue.alloc_fn = custom_alloc_fn;
+    queue.free_fn = custom_free_fn;
+    queue.capacity = 1;
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_destroy(&queue, NULL, NULL);
+    TEST_ASSERT_EQUAL(EZQ_STATUS_SUCCESS, estat);
+    TEST_ASSERT_NULL(queue.alloc_fn);
+    TEST_ASSERT_NULL(queue.free_fn);
+    TEST_ASSERT_EQUAL_UINT(0, queue.capacity);
 } /* test__ezq_destroy__empty_queue__success */
 
+/*!
+ * @brief Test that \c ezq_destroy success when passed a cleanup function
+ * that is not \c NULL .
+ */
 static void
 test__ezq_destroy__non_null_cleanup_fn__success(void)
 {
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    unsigned int cleanup_count = 0;
+    struct ezq_linkedlist_node nodes[10] = { 0 };
+    unsigned int i = 0;
 
+    /* Set any initial state. */
+    for (i = 0; i < sizeof(nodes)/sizeof(nodes[0]); ++i)
+    {
+        nodes[i].p_item = (unsigned char *)0xFF - i;
+        if (i + 1 >= sizeof(nodes)/sizeof(nodes[0]))
+        {
+            nodes[i].p_next = NULL;
+        }
+        else
+        {
+            nodes[i].p_next = &nodes[i + 1];
+        }
+    }
+    queue.fixed.count = 0;
+    queue.dynamic.count = sizeof(nodes)/sizeof(nodes[0]);
+    queue.dynamic.p_head = &nodes[0];
+    queue.dynamic.p_tail = &nodes[sizeof(nodes)/sizeof(nodes[0]) - 1];
+    queue.alloc_fn = custom_alloc_fn;
+    queue.free_fn = custom_free_fn;
+    queue.capacity = sizeof(nodes)/sizeof(nodes[0]);
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_destroy(&queue, custom_cleanup_fn, &cleanup_count);
+    TEST_ASSERT_EQUAL(EZQ_STATUS_SUCCESS, estat);
+    TEST_ASSERT_NULL(queue.alloc_fn);
+    TEST_ASSERT_NULL(queue.free_fn);
+    TEST_ASSERT_EQUAL_UINT(0, queue.capacity);
+    TEST_ASSERT_EQUAL(sizeof(nodes)/sizeof(nodes[0]), cleanup_count);
+    for (i = 0; i < sizeof(nodes)/sizeof(nodes[0]); ++i)
+    {
+        TEST_ASSERT_NULL(nodes[i].p_item);
+        TEST_ASSERT_NULL(nodes[i].p_next);
+    }
 } /* test__ezq_destroy__non_null_cleanup_fn__success */
 
+/*!
+ * @brief Test that \c ezq_destroy success when passed a cleanup function
+ * that is \c NULL .
+ */
 static void
 test__ezq_destroy__null_cleanup_fn__success(void)
 {
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    struct ezq_linkedlist_node nodes[10] = { 0 };
+    unsigned int i = 0;
 
+    /* Set any initial state. */
+    for (i = 0; i < sizeof(nodes)/sizeof(nodes[0]); ++i)
+    {
+        nodes[i].p_item = (unsigned char *)0xFF - i;
+        if (i + 1 >= sizeof(nodes)/sizeof(nodes[0]))
+        {
+            nodes[i].p_next = NULL;
+        }
+        else
+        {
+            nodes[i].p_next = &nodes[i + 1];
+        }
+    }
+    queue.fixed.count = 0;
+    queue.dynamic.count = sizeof(nodes)/sizeof(nodes[0]);
+    queue.dynamic.p_head = &nodes[0];
+    queue.dynamic.p_tail = &nodes[sizeof(nodes)/sizeof(nodes[0]) - 1];
+    queue.alloc_fn = custom_alloc_fn;
+    queue.free_fn = custom_free_fn;
+    queue.capacity = sizeof(nodes)/sizeof(nodes[0]);
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_destroy(&queue, NULL, NULL);
+    TEST_ASSERT_EQUAL(EZQ_STATUS_SUCCESS, estat);
+    TEST_ASSERT_NULL(queue.alloc_fn);
+    TEST_ASSERT_NULL(queue.free_fn);
+    TEST_ASSERT_EQUAL_UINT(0, queue.capacity);
+    for (i = 0; i < sizeof(nodes)/sizeof(nodes[0]); ++i)
+    {
+        TEST_ASSERT_NULL(nodes[i].p_item);
+        TEST_ASSERT_NULL(nodes[i].p_next);
+    }
 } /* test__ezq_destroy__null_cleanup_fn__success */
 
+/*!
+ * @brief Test that \c ezq_destroy fails when passed an \c ezq_queue
+ * pointer that is \c NULL .
+ */
 static void
 test__ezq_destroy__null_queue__failure(void)
 {
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
 
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_destroy(NULL, NULL, NULL);
+    TEST_ASSERT_EQUAL(EZQ_STATUS_NULL_QUEUE, estat);
 } /* test__ezq_destroy__null_queue__failure */
 
+/*!
+ * @brief Test that \c ezq_destroy fails when its underlying linked list
+ * contains items but the queue has no freeing function registered.
+ */
+static void
+test__ezq_destroy__no_free_fn__failure(void)
+{
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    struct ezq_linkedlist_node nodes[10] = { 0 };
+    unsigned int i = 0;
+
+    /* Set any initial state. */
+    for (i = 0; i < sizeof(nodes)/sizeof(nodes[0]); ++i)
+    {
+        nodes[i].p_item = (unsigned char *)0xFF - i;
+        if (i + 1 >= sizeof(nodes)/sizeof(nodes[0]))
+        {
+            nodes[i].p_next = NULL;
+        }
+        else
+        {
+            nodes[i].p_next = &nodes[i + 1];
+        }
+    }
+    queue.fixed.count = 0;
+    queue.dynamic.count = sizeof(nodes)/sizeof(nodes[0]);
+    queue.dynamic.p_head = &nodes[0];
+    queue.dynamic.p_tail = &nodes[sizeof(nodes)/sizeof(nodes[0]) - 1];
+    queue.alloc_fn = custom_alloc_fn;
+    queue.free_fn = NULL;
+    queue.capacity = sizeof(nodes)/sizeof(nodes[0]);
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_destroy(&queue, NULL, NULL);
+    TEST_ASSERT_EQUAL(EZQ_STATUS_NO_FREE_FN, estat);
+
+    /* Validate that nothing else was unexpectedly modified. */
+    TEST_ASSERT_EQUAL_UINT(sizeof(nodes)/sizeof(nodes[0]), queue.dynamic.count);
+    TEST_ASSERT_EQUAL_PTR(&nodes[0], queue.dynamic.p_head);
+    TEST_ASSERT_EQUAL_PTR(
+        &nodes[sizeof(nodes)/sizeof(nodes[0]) - 1],
+        queue.dynamic.p_tail
+    );
+    TEST_ASSERT_EQUAL_PTR(custom_alloc_fn, queue.alloc_fn);
+    TEST_ASSERT_EQUAL_UINT(sizeof(nodes)/sizeof(nodes[0]), queue.capacity);
+    for (i = 0; i < sizeof(nodes)/sizeof(nodes[0]); ++i)
+    {
+        TEST_ASSERT_EQUAL_PTR((unsigned char *)0xFF - i, nodes[i].p_item);
+        if (i + 1 >= sizeof(nodes)/sizeof(nodes[0]))
+        {
+            TEST_ASSERT_NULL(nodes[i].p_next);
+        }
+        else
+        {
+            TEST_ASSERT_EQUAL_PTR(&nodes[i + 1], nodes[i].p_next);
+        }
+    }
+} /* test__ezq_destroy__no_free_fn__failure */
+
+/*!
+ * @brief Runs all of the Easyqueue unit tests.
+ *
+ * @param[in] argc UNUSED
+ * @param[in] argv UNUSED
+ *
+ * @return \c 0 if all tests are successful, otherwise the number of tests
+ * that failed.
+ */
 int main(int argc, char **argv) {
     UNITY_BEGIN();
 
+    /* ezq_init */
     RUN_TEST(test__ezq_init__standard__success);
     RUN_TEST(test__ezq_init__null_queue__failure);
 
+    /* ezq_push */
     RUN_TEST(test__ezq_push__buf__success);
     RUN_TEST(test__ezq_push__list__success);
     RUN_TEST(test__ezq_push__null_queue__failure);
@@ -620,6 +812,7 @@ int main(int argc, char **argv) {
     RUN_TEST(test__ezq_push__no_alloc_fn__failure);
     RUN_TEST(test__ezq_push__alloc_fail__failure);
 
+    /* ezq_pop */
     RUN_TEST(test__ezq_pop__empty_list__success);
     RUN_TEST(test__ezq_pop__non_empty_list__success);
     RUN_TEST(test__ezq_pop__null_queue__failure);
@@ -627,14 +820,17 @@ int main(int argc, char **argv) {
     RUN_TEST(test__ezq_pop__empty__failure);
     RUN_TEST(test__ezq_pop__no_free_fn__failure);
 
+    /* ezq_count */
     RUN_TEST(test__ezq_count__zero_count__success);
     RUN_TEST(test__ezq_count__non_zero_count__success);
     RUN_TEST(test__ezq_count__null_queue__failure);
 
+    /* ezq_destroy */
     RUN_TEST(test__ezq_destroy__empty_queue__success);
     RUN_TEST(test__ezq_destroy__null_cleanup_fn__success);
     RUN_TEST(test__ezq_destroy__non_null_cleanup_fn__success);
     RUN_TEST(test__ezq_destroy__null_queue__failure);
+    RUN_TEST(test__ezq_destroy__no_free_fn__failure);
 
     return UNITY_END();
 } /* main */
