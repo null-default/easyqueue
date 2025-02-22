@@ -6,7 +6,7 @@ project(easyqueue
 
 # Semantic Versioning, for the API version.
 set(EASYQUEUE_MAJOR_VERSION 1)  # increment for incompatible API changes
-set(EASYQUEUE_MINOR_VERSION 0)  # increment with new backwards-compatible functionality
+set(EASYQUEUE_MINOR_VERSION 1)  # increment with new backwards-compatible functionality
 set(EASYQUEUE_PATCH_VERSION 0)  # increment with backwards-compatible bugfixes
 set(EASYQUEUE_APIVERSION ${EASYQUEUE_MAJOR_VERSION}.${EASYQUEUE_MINOR_VERSION})
 
