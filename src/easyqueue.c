@@ -441,9 +441,14 @@ ezq_list_pop(
     p_front = p_ll->p_head;
     p_ll->p_head = p_ll->p_head->p_next;
     --p_ll->count;
+    if (0 == p_ll->count)
+    {
+        p_ll->p_tail = NULL;
+    }
 
     *pp_item = p_front->p_item;
     p_front->p_item = NULL;
+    p_front->p_next = NULL;
 
     if (NULL != free_fn)
     {
