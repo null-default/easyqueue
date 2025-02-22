@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <unity/unity.h>
 #include "easyqueue.h"
 
@@ -359,40 +358,169 @@ test__ezq_push__alloc_fail__failure(void)
     TEST_ASSERT_NULL(queue.dynamic.p_tail);
 } /* test__ezq_push__alloc_fail__failure */
 
+/*!
+ * @brief Tests that \c ezq_pop success when the underlying fixed-size
+ * buffer contains items but the underlying linked list does not.
+ */
 static void
 test__ezq_pop__empty_list__success(void)
 {
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    int *p_item = NULL;
 
+    /* Set any initial state. */
+    queue.fixed.count = 1;
+    queue.fixed.p_items[0] = (void *)0xFF;
+    queue.dynamic.count = 0;
+    queue.dynamic.p_head = NULL;
+    queue.dynamic.p_tail = NULL;
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_pop(&queue, (void **)&p_item);
+    TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_SUCCESS, estat);
+    TEST_ASSERT_EQUAL_PTR(0xFF, p_item);
+    TEST_ASSERT_NULL(queue.fixed.p_items[0]);
+    TEST_ASSERT_EQUAL_UINT32(0, queue.fixed.count);
+
+    /* Validate that nothing else was unexpectedly modified. */
+    TEST_ASSERT_EQUAL(0, queue.dynamic.count);
+    TEST_ASSERT_NULL(queue.dynamic.p_head);
+    TEST_ASSERT_NULL(queue.dynamic.p_tail);
 } /* test__ezq_pop__empty_list__success */
 
+/*!
+ * @brief Tests that \c ezq_pop success when the underlying fixed-size
+ * buffer contains items and the underlying linked list also contains
+ * items.
+ */
 static void
 test__ezq_pop__non_empty_list__success(void)
 {
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    int *p_item = NULL;
+    struct ezq_linkedlist_node node = { 0 };
 
+    /* Set any initial state. */
+    node.p_item = (void *)0xFE;
+    node.p_next = NULL;
+    queue.free_fn = custom_free_fn;
+    queue.fixed.count = EZQ_FIXED_BUFFER_CAPACITY;
+    queue.fixed.p_items[0] = (void *)0xFF;
+    queue.dynamic.count = 1;
+    queue.dynamic.p_head = &node;
+    queue.dynamic.p_tail = &node;
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_pop(&queue, (void **)&p_item);
+    TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_SUCCESS, estat);
+    TEST_ASSERT_EQUAL_PTR(0xFF, p_item);
+    TEST_ASSERT_EQUAL_PTR(0xFE, queue.fixed.p_items[0]);
+    TEST_ASSERT_NULL(node.p_item);
+    TEST_ASSERT_NULL(node.p_next);
+    TEST_ASSERT_EQUAL_UINT32(EZQ_FIXED_BUFFER_CAPACITY, queue.fixed.count);
+    TEST_ASSERT_EQUAL(0, queue.dynamic.count);
+    TEST_ASSERT_NULL(queue.dynamic.p_head);
+    TEST_ASSERT_NULL(queue.dynamic.p_tail);
 } /* test__ezq_pop__non_empty_list__success */
 
+/*!
+ * @brief Tests that \c ezq_pop fails when passed an \c ezq_queue pointer
+ * that is \c NULL .
+ */
 static void
 test__ezq_pop__null_queue__failure(void)
 {
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    int *p_item = (int *)0xFF;
 
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_pop(NULL, (void **)&p_item);
+    TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_NULL_QUEUE, estat);
+
+    /* Validate that nothing else was unexpectedly modified. */
+    TEST_ASSERT_EQUAL_PTR(0xFF, p_item);
 } /* test__ezq_pop__null_queue__failure */
 
+/*!
+ * @brief Tests that \c ezq_pop fails when passed an out variable
+ * pointer that is \c NULL .
+ */
 static void
 test__ezq_pop__null_out__failure(void)
 {
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
 
+    /* Set any initial state. */
+    queue.fixed.count = 1;
+    queue.fixed.p_items[0] = (void *)0xFF;
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_pop(&queue, NULL);
+    TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_NULL_OUT, estat);
+
+    /* Validate that nothing else was unexpectedly modified. */
+    TEST_ASSERT_EQUAL_UINT32(1, queue.fixed.count);
+    TEST_ASSERT_EQUAL_PTR(0xFF, queue.fixed.p_items[0]);
 } /* test__ezq_pop__null_out__failure */
 
+/*!
+ * @brief Tests that \c ezq_pop fails when there are no items in the queue.
+ */
 static void
 test__ezq_pop__empty__failure(void)
 {
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    int *p_item = (int *)0xFF;
 
+    /* Set any initial state. */
+    queue.fixed.count = 0;
+    queue.dynamic.count = 0;
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_pop(&queue, (void **)&p_item);
+    TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_EMPTY, estat);
+
+    /* Validate that nothing else was unexpectedly modified. */
+    TEST_ASSERT_EQUAL_PTR(0xFF, p_item);
 } /* test__ezq_pop__empty__failure */
 
+/*!
+ * @brief Tests that \c ezq_pop fails when the underlying linked list
+ * contains items but the queue has no freeing function registered.
+ */
 static void
 test__ezq_pop__no_free_fn__failure(void)
 {
+    ezq_queue queue = { 0 };
+    ezq_status estat = EZQ_STATUS_UNKNOWN;
+    int *p_item = (int *)0xFF;
+    struct ezq_linkedlist_node node = { 0 };
 
+    /* Set any initial state. */
+    node.p_item = (void *)0xFE;
+    node.p_next = NULL;
+    queue.free_fn = NULL;
+    queue.fixed.count = EZQ_FIXED_BUFFER_CAPACITY;
+    queue.dynamic.count = 1;
+    queue.dynamic.p_head = &node;
+    queue.dynamic.p_tail = &node;
+
+    /* Invoke the function being tested and verify the expected outcome. */
+    estat = ezq_pop(&queue, (void **)&p_item);
+    TEST_ASSERT_EQUAL_UINT8(EZQ_STATUS_NO_FREE_FN, estat);
+    TEST_ASSERT_EQUAL_UINT32(EZQ_FIXED_BUFFER_CAPACITY, queue.fixed.count);
+    TEST_ASSERT_EQUAL_UINT32(1, queue.dynamic.count);
+    TEST_ASSERT_EQUAL_PTR(&node, queue.dynamic.p_head);
+    TEST_ASSERT_EQUAL_PTR(&node, queue.dynamic.p_tail);
+    TEST_ASSERT_EQUAL_PTR(0xFE, node.p_item);
+    TEST_ASSERT_NULL(node.p_next);
+
+    /* Validate that nothing else was unexpectedly modified. */
+    TEST_ASSERT_EQUAL_PTR(0xFF, p_item);
 } /* test__ezq_pop__no_free_fn__failure */
 
 static void
